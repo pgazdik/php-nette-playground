@@ -1,0 +1,4 @@
+database:
+    dsn: 'mysql:host=mariadb;dbname=db'
+    user: cortex
+    password: cortex
