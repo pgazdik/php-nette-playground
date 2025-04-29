@@ -3,11 +3,12 @@
 ###############################################################################
 version: '3.1'
 services:
-    mariadb:
+    db-server:
         image: 'mariadb:11.0'
         working_dir: /application
         volumes:
             - '.:/application'
+            - db_data:/var/lib/mysql
         environment:
             - MYSQL_ROOT_PASSWORD=cortex
             - MYSQL_DATABASE=db
@@ -28,6 +29,11 @@ services:
     php-fpm:
         build: phpdocker/php-fpm
         working_dir: /application
+        # Not sure if PHP_IDE_CONFIG is needed, check later.
+        environment:
+            PHP_IDE_CONFIG: "serverName=Docker"
+        ports:
+            - '9003:9003'  # Expose Xdebug port
         volumes:
             - '.:/application'
             - './phpdocker/php-fpm/php-ini-overrides.ini:/etc/php/8.4/fpm/conf.d/99-overrides.ini'
@@ -40,3 +46,7 @@ services:
             chmod -R 777 /application/demo/log /application/demo/temp &&
             chmod -R 755 /application/demo/www &&
             php-fpm8.4"
+
+# This will be a Docker managed persistent volume, with the name:   php-nette-playground_db_data
+volumes:
+  db_data:

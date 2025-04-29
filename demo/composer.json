@@ -1,9 +1,9 @@
 {
 	"name": "nette/web-project",
-	"description": "Nette: Standard Web Project",
+	"description": "Nette: Demo",
 	"keywords": ["nette"],
 	"type": "project",
-	"license": ["MIT", "BSD-3-Clause", "GPL-2.0-only", "GPL-3.0-only"],
+	"license": ["MIT"],
 	"require": {
 		"php": ">= 8.1",
 		"nette/application": "^3.2.3",
@@ -18,7 +18,8 @@
 		"nette/security": "^3.2",
 		"nette/utils": "^4.0",
 		"latte/latte": "^3.0",
-		"tracy/tracy": "^2.10"
+		"tracy/tracy": "^2.10",
+		"tharos/leanmapper": "^4.2"
 	},
 	"require-dev": {
 		"nette/tester": "^2.5",

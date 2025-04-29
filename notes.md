@@ -5,15 +5,21 @@
 
 Run bask in php-fpm container
 
-> docker-compose exec php-fpm bash
+> docker compose exec php-fpm bash
 
 Install dependencies
-> docker-compose exec -w /application/demo php-fpm composer install
+> docker compose exec -w /application/demo php-fpm composer install
 
 Build php-npm image
-> docker-compose build php-npm
+> docker compose build php-npm
+
+Query DB
+> docker compose exec db-server mariadb --user=cortex --password=cortex db -e "SELECT * FROM posts;"
+
 
 ---------
+
+
 
 ## Setup Explanation
 
@@ -22,7 +28,7 @@ Build php-npm image
 I use a subfolder `demo`, because creating the project with composer needed an empty folder.
 
 The command was:
-> docker-compose exec php-fpm composer create-project nette/web-project demo
+> docker compose exec php-fpm composer create-project nette/web-project demo
 
 Then the public directory as configured in nginx was `demo/www`, configured as:
 > root /application/demo/www.

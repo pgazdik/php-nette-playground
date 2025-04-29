@@ -1,5 +1,7 @@
 <?php
 
+// tests the configuration for "database"
+
 require __DIR__ . '/../vendor/autoload.php';
 
 $configurator = new Nette\Bootstrap\Configurator;
@@ -12,8 +14,5 @@ $container = $configurator->createContainer();
 
 $db = $container->getByType(Nette\Database\Connection::class);
 
-$x->foo();
-echo "OK";
-
-//$result = $db->query('SELECT 1 AS test');
-// echo $result->fetchField('test') ? 'Database connection successful!' : 'Database connection failed.';
+$result = $db->query('SELECT 1 AS test');
+echo $result->fetchField('test') ? 'Database connection successful!' : 'Database connection failed.';

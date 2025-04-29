@@ -1,4 +1,39 @@
 database:
-    dsn: 'mysql:host=mariadb;dbname=db'
+    dsn: 'mysql:host=db-server;dbname=db'
     user: cortex
     password: cortex
+
+extensions:
+    dibi: Dibi\Bridges\Nette\DibiExtension3
+    leanmapper: LeanMapper\Bridges\Nette\DI\LeanMapperExtension
+
+dibi:
+    driver: mysqli
+    host: db-server
+    username: cortex
+    password: cortex
+    database: db
+    lazy: true
+
+leanmapper:
+    db: 
+        driver: mysqli
+        host: db-server
+        username: cortex
+        password: cortex
+        database: db
+        lazy: true
+
+services:
+    - Model\Repository\BookRepository
+
+    # This would be needed if Book was in the App\Model\Entity namespace
+    # That would be needed because it matches the folder structure app/Model/Entity which is how classes are mapped - see composer.json / autoload / psr-4
+    # However, since we are using RobotLoader, out class can be in just Model\Entity namespace
+    #
+    # leanmapper.mapper:
+    #     class: LeanMapper\DefaultMapper
+    #     arguments: ['App\Model\Entity']
+
+        
+    
