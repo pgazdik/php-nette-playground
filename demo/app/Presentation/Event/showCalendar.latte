@@ -2,12 +2,18 @@
     <style>
         .calendar {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(6, 1fr);
             gap: 1rem;
             padding: 1rem;
         }
         .day {
             position: relative;
+            border-left: 1px solid #ddd;
+        }
+        .time-column {
+            position: relative;
+            border-right: 1px solid #ddd;
+            padding-right: 1rem;
         }
         .hour-mark {
             position: absolute;
@@ -24,19 +30,30 @@
             color: white;
             padding: 0;
             border-radius: 4px;
-            width: 90%;
-            left: 5%;
+            width: 95%;
+            left: 2.5%;
         }
     </style>
 
     <div class="calendar">
+        <!-- Time column -->
+        <div class="time-column">
+            <h3 style="margin-top: 0">Time</h3>
+            
+            <!-- Hour marks -->
+            {for $hour = 0; $hour <= 18; $hour++}
+                <div class="hour-mark" style="top: {50 + $hour * 40}px">{$hour}:00</div>
+            {/for}
+        </div>
+        
+        <!-- Days -->
         {foreach ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as $day}
             <div class="day">
                 <h3 style="margin-top: 0">{$day}</h3>
                 
                 <!-- Hour marks -->
                 {for $hour = 0; $hour <= 18; $hour++}
-                    <div class="hour-mark" style="top: {50 + $hour * 40}px">{$hour}:00</div>
+                    <div class="hour-mark" style="top: {50 + $hour * 40}px"></div>
                 {/for}
                 
                 <!-- Events -->

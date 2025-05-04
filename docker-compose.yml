@@ -5,10 +5,11 @@ version: '3.1'
 services:
     db-server:
         image: 'mariadb:11.0'
-        working_dir: /application
+        #working_dir: /application
         volumes:
-            - '.:/application'
+            #- '.:/application'
             - db_data:/var/lib/mysql
+            - ./db_init:/docker-entrypoint-initdb.d # Directory for init scripts
         environment:
             - MYSQL_ROOT_PASSWORD=cortex
             - MYSQL_DATABASE=db

@@ -1,0 +1,53 @@
+{block content}
+
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        display: flex; /* Use flexbox for layout */
+        height: 100vh; /* Make the body take full viewport height */
+        width: 100%;
+        overflow: hidden; /* Prevent scrolling on the body */
+    }
+
+    .panel {
+        padding: 20px;
+        box-sizing: border-box; /* Include padding in the element's total width/height */
+        overflow-y: auto; /* Enable vertical scrolling if content overflows */
+    }
+
+    .left-panel {
+        background-color: #003;
+        color: #ddd;
+        flex: 0 0 30%; /* Set width to 30% */
+    }
+
+    .right-panel {
+        background-color: #e0e0e0; /* Slightly darker gray background */
+        flex: 0 0 70%; /* Set width to 70% */
+    }
+
+    p {
+        line-height: 1.6;
+    }
+</style>
+
+<div class="panel left-panel">
+    <h1>SMS Gateway Config</h1>
+
+    <p>Enter your SMS gateway details below.<br>They will be remembered in your session, not DB.</p>
+
+    {control smsGatewayForm}
+
+    {foreach $flashes as $flash}
+        {if $flash->type == 'gateway_success'}
+            <div class="flash {$flash->type}">{$flash->message}</div>
+        {/if}
+    {/foreach}
+</div>
+
+<div class="panel right-panel">
+    <h1>Messages</h1>
+    <p>This is the content for the right side of your screen. Similar to the left panel, you can add any kind of content here.</p>
+</div>
+

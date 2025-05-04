@@ -3,7 +3,7 @@
 
 ### Quick commands
 
-Run bask in php-fpm container
+Run bash in php-fpm container
 
 > docker compose exec php-fpm bash
 

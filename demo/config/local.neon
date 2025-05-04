@@ -1,22 +1,6 @@
-database:
-    dsn: 'mysql:host=db-server;dbname=db'
-    user: cortex
-    password: cortex
-
-extensions:
-    dibi: Dibi\Bridges\Nette\DibiExtension3
-    leanmapper: LeanMapper\Bridges\Nette\DI\LeanMapperExtension
-
-dibi:
-    driver: mysqli
-    host: db-server
-    username: cortex
-    password: cortex
-    database: db
-    lazy: true
-
-leanmapper:
-    db: 
+# config.neon
+parameters:
+    db:
         driver: mysqli
         host: db-server
         username: cortex
@@ -24,20 +8,27 @@ leanmapper:
         database: db
         lazy: true
 
-services:
-    - Model\Repository\BookRepository
+# Main Database DSN can be derived from parameters
+database:
+    dsn: 'mysql:host=%db.host%;dbname=%db.database%'
+    user: %db.username%
+    password: %db.password%
 
-    latte.latteFactory:
-        setup:
-            - addExtension(Latte\Essential\RawPhpExtension())
+# Dibi uses the same parameters
+dibi:
+    driver: %db.driver%
+    host: %db.host%
+    username: %db.username%
+    password: %db.password%
+    database: %db.database%
+    lazy: %db.lazy%
 
-    # This would be needed if Book was in the App\Model\Entity namespace
-    # That would be needed because it matches the folder structure app/Model/Entity which is how classes are mapped - see composer.json / autoload / psr-4
-    # However, since we are using RobotLoader, out class can be in just Model\Entity namespace
-    #
-    # leanmapper.mapper:
-    #     class: LeanMapper\DefaultMapper
-    #     arguments: ['App\Model\Entity']
-
-        
-    
+# LeanMapper also uses the same parameters
+leanmapper:
+    db:
+        driver: %db.driver%
+        host: %db.host%
+        username: %db.username%
+        password: %db.password%
+        database: %db.database%
+        lazy: %db.lazy%

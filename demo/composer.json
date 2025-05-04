@@ -23,11 +23,17 @@
 	},
 	"require-dev": {
 		"nette/tester": "^2.5",
-		"symfony/thanks": "^1"
+		"symfony/thanks": "^1",
+		"phpunit/phpunit": "^12.1"
 	},
 	"autoload": {
 		"psr-4": {
 			"App\\": "app"
+		}
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"Tests\\": "tests/"
 		}
 	},
 	"minimum-stability": "stable",
