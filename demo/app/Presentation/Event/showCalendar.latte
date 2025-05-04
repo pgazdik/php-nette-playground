@@ -1,0 +1,77 @@
+{block content}
+    <style>
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+            padding: 1rem;
+        }
+        .day {
+            position: relative;
+        }
+        .hour-mark {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 40px;
+            border-bottom: 1px solid #ddd;
+            font-size: 0.8em;
+            color: #666;
+        }
+        .event {
+            position: absolute;
+            background-color: rgba(76, 175, 80, 0.5);
+            color: white;
+            padding: 0;
+            border-radius: 4px;
+            width: 90%;
+            left: 5%;
+        }
+    </style>
+
+    <div class="calendar">
+        {foreach ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as $day}
+            <div class="day">
+                <h3 style="margin-top: 0">{$day}</h3>
+                
+                <!-- Hour marks -->
+                {for $hour = 0; $hour <= 18; $hour++}
+                    <div class="hour-mark" style="top: {50 + $hour * 40}px">{$hour}:00</div>
+                {/for}
+                
+                <!-- Events -->
+                {foreach $events as $event}
+                    {if $event['day'] === $day}
+                        {php
+                            $start = strtotime($event['start']);
+                            $end = strtotime($event['end']);
+                            $startHour = date('H', $start);
+                            $startMinute = date('i', $start);
+                            $endHour = date('H', $end);
+                            $endMinute = date('i', $end);
+                            
+                            $top = 50 + ($startHour) * 40 + ($startMinute / 60) * 40;
+                            $height = (($endHour - $startHour) * 40) + (($endMinute - $startMinute) / 60) * 40;
+                        }
+                        <div class="event" 
+                             style="top: {$top}px; 
+                                    height: {$height}px">
+                            {$event['title']}<br>
+                            {$startHour}:{$startMinute} - {$endHour}:{$endMinute}
+                        </div>
+                    {/if}
+                {/foreach}
+            </div>
+        {/foreach}
+    </div>
+
+    {block js}
+        <script>
+            // Helper function to convert hour:minute to pixels
+            function hourToPixels(time) {
+                const [hours, minutes] = time.split(':');
+                return (parseInt(hours) - 9) * 40 + (parseInt(minutes) / 60) * 40;
+            }
+        </script>
+    {/block}
+{/block}

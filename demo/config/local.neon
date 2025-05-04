@@ -27,6 +27,10 @@ leanmapper:
 services:
     - Model\Repository\BookRepository
 
+    latte.latteFactory:
+        setup:
+            - addExtension(Latte\Essential\RawPhpExtension())
+
     # This would be needed if Book was in the App\Model\Entity namespace
     # That would be needed because it matches the folder structure app/Model/Entity which is how classes are mapped - see composer.json / autoload / psr-4
     # However, since we are using RobotLoader, out class can be in just Model\Entity namespace
