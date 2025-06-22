@@ -7,9 +7,20 @@ CREATE TABLE IF NOT EXISTS `message` (
 	`text` varchar(255) NOT NULL,
 	`toNumber` varchar(255) NOT NULL,
 	`status` varchar(255) NOT NULL,
-	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB CHARSET=utf8;
 
+	-- read from the gateway
+	`gw_id` int(11), 
+	`gw_send_status` varchar(255),
+
+	-- read from the gateway
+	`gw_check_status` varchar(255),
+	`gw_error_code` int,
+	`gw_send_date` timestamp,
+	`gw_delivery_date` timestamp,
+
+	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB CHARSET=utf8;
 
 -- LEANMAPPER DEMO
 
