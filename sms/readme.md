@@ -29,6 +29,11 @@ docker compose up
 ```
 (No desire to go through start/stop/up/down differences now).
 
+Open a new cmd/shell and again navigate to the root:
+```bash
+cd php-nette-playground
+```
+
 Install dependencies:
 ```bash
 docker compose exec -w /application/demo php-fpm composer install
