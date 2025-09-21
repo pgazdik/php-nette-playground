@@ -4,8 +4,15 @@
 
 CREATE TABLE IF NOT EXISTS `message` (
 	`id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+
+	-- from input form
 	`text` varchar(255) NOT NULL,
 	`toNumber` varchar(255) NOT NULL,
+	`img_name` VARCHAR(255) NULL,
+	`img_type` VARCHAR(255) NULL,
+	`img_content` BLOB NULL,
+
+	-- lifecycle status based on which buttons were clicked (new, sent, checked)
 	`status` varchar(255) NOT NULL,
 
 	-- read from the gateway
@@ -18,9 +25,11 @@ CREATE TABLE IF NOT EXISTS `message` (
 	`gw_send_date` timestamp,
 	`gw_delivery_date` timestamp,
 
+	-- managed by the DB
 	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	`updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB CHARSET=utf8;
+
 
 -- LEANMAPPER DEMO
 

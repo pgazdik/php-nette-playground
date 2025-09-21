@@ -19,12 +19,12 @@
     .left-panel {
         background-color: #003;
         color: #ddd;
-        flex: 0 0 30%; /* Set width to 30% */
+        flex: 0 0 26%; /* Set width to 26% */
     }
 
     .right-panel {
         background-color: #e0e0e0; /* Slightly darker gray background */
-        flex: 0 0 70%; /* Set width to 70% */
+        flex: 0 0 74%; /* Set width to 74% */
     }
 
     p {
@@ -72,6 +72,7 @@
                 <th>Created</th>
                 <th>Number</th>
                 <th>Text</th>
+                <th>Img</th>
                 <th>Status</th>
                 <th>Gw Id</th>
                 <th>Send St</th>
@@ -80,6 +81,7 @@
                 <th>Delivered Date</th>
                 <th>Error Code</th>
                 <th>Action</th>
+                <th>X</th>
             </tr>
         </thead>
         <tbody>
@@ -88,6 +90,7 @@
                     <td>{$message->created_at|date:'d m H:i:s'}</td>
                     <td>{$message->toNumber}</td>
                     <td>{$message->text}</td>
+                    <td>{$message->img_name}</td>
                     <td>{$message->status}</td>
                     <td>{$message->gw_id}</td>
                     <td>{$message->gw_send_status}</td>
@@ -101,6 +104,9 @@
                         {elseif $message->status === 'sent'}
                             <a href="{link check! $message->id}" class="btn btn-check">Check</a>
                         {/if}
+                    </td>
+                    <td>
+                        <a href="{link delete! $message->id}" class="btn btn-delete">X</a>
                     </td>
                 </tr>
             {/foreach}
@@ -160,6 +166,15 @@
         
         .btn-check:hover {
             background-color: #0b7dda;
+        }
+
+        .btn-delete {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background-color: #d32f2f;
         }
     </style>
 </div>

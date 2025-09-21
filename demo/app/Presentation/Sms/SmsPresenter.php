@@ -30,6 +30,13 @@ final class SmsPresenter extends Nette\Application\UI\Presenter
         // Make session data available to the Latte template
         $messages = $this->database
             ->table('message')
+            // we select everything except img_content, which is a BLOB
+            ->select(
+                'id, text, toNumber, status, ' .
+                'img_name, img_type, ' .
+                'gw_id, gw_send_status, gw_check_status, gw_error_code, gw_send_date, gw_delivery_date, ' .
+                'created_at, updated_at'
+            )
             ->order('id DESC')
             ->fetchAll();
 
@@ -82,6 +89,9 @@ final class SmsPresenter extends Nette\Application\UI\Presenter
             ->setRequired('Please enter the number.');
         $form->addText('text', 'MMS Text:')
             ->setRequired('Please enter the text.');
+        $form->addUpload('image', 'Image:')
+            ->addRule($form::MimeType, 'Image must be JPEG or PNG.', ['image/jpeg', 'image/png'])
+            ->addRule($form::MaxFileSize, 'Maximum size is 1 MB.', 1024 * 1024);
         $form->addSubmit('create', 'Create');
 
         $form->onSuccess[] = [$this, 'messageFormSucceeded'];
@@ -90,14 +100,57 @@ final class SmsPresenter extends Nette\Application\UI\Presenter
     }
     public function messageFormSucceeded(Form $form, array $data): void
     {
+        $number = $data['number'];
+        $text = $data['text'];
+        $image = $data['image'];
+
+        $imageName = null;
+        $imageType = null;
+        $imageContent = null;
+
+        if ($image->hasFile()) {
+            if (!$image->isOk()) {
+                $error = $image->getError();
+
+                $phpFileUploadErrors = array(
+                    0 => 'There is no error, the file uploaded with success',
+                    1 => 'The uploaded file exceeds the upload_max_filesize directive in php.ini',
+                    2 => 'The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form',
+                    3 => 'The uploaded file was only partially uploaded',
+                    4 => 'No file was uploaded',
+                    6 => 'Missing a temporary folder',
+                    7 => 'Failed to write file to disk.',
+                    8 => 'A PHP extension stopped the file upload.',
+                );
+
+                $this->flashMessage('Image upload failed: ' . $phpFileUploadErrors[$error], 'msg_error');
+                $this->redirect('this');
+                return;
+            }
+
+            // $imageName = $image->getSanitizedName();
+            $imageName = $this->sanitizeName($image->getUntrustedName());
+            $imageType = $image->getContentType();
+            $imageContent = $image->getContents();
+        }
+
         $this->database->table('message')->insert([
-            'toNumber' => $data['number'],
-            'text' => $data['text'],
+            'toNumber' => $number,
+            'text' => $text,
+            'img_name' => $imageName,
+            'img_type' => $imageType,
+            'img_content' => $imageContent,
             'status' => 'new',
         ]);
 
         $this->flashMessage('MMS successfully created!', 'msg_success');
         $this->redirect('this'); // Redirect to refresh the page and display updates
+    }
+
+    private function sanitizeName(string $name): string
+    {
+        // remove everything except letters, numbers, _, -, (, ), ., '
+        return preg_replace('/[^a-zA-Z0-9áéíóúÁÉÍÓÚčďěňóřšťůýžČĎĚŇÓŘŠŤŮÝŽ_\-\(\)\.\']/u', '', $name);
     }
 
     // ########################################################
@@ -113,7 +166,16 @@ final class SmsPresenter extends Nette\Application\UI\Presenter
             $this->error('Message not found.');
         }
 
-        Debugger::log("Sending MMS: " . $message->text);
+        Debugger::log("Sending MMS: " . $message->text .
+            ($message->img_name ? " with image: " . $message->img_name . " (" . $message->img_type . ")" : ""));
+
+        $attachements = [];
+        if ($message->img_name) {
+            $attachements[] = [
+                "content_type" => $message->img_type,
+                "content" => base64_encode($message->img_content),
+            ];
+        }
 
         $postData = json_encode([
             "to" => [$message->toNumber],
@@ -122,7 +184,8 @@ final class SmsPresenter extends Nette\Application\UI\Presenter
             "validity" => "max",
             // "send_after" => "08:00",
             // "send_before" => "21:00",
-            "test" => $TEST
+            "test" => $TEST,
+            "attachments" => $attachements
         ]);
 
         $result = $this->requestToSmsGateway('mms', $postData);
@@ -169,12 +232,13 @@ final class SmsPresenter extends Nette\Application\UI\Presenter
 
         // if the message is not yet recognized by the SMS GW, the response JSON is {"message":"Resource(s) not found"}
         if (!is_array($response)) {
-            if (property_exists($response, 'message')) {
-                $this->flashMessage('MMS check returned: ' . $response->message, 'msg_error');
+            if (property_exists($response, 'message') && str_contains($response->message, 'not found')) {
+                $this->flashMessage('MMS not found yet, try again laer!', 'msg_error');
                 $this->redirect('this'); // Redirect to refresh the page and display updates
             } else {
-                Debugger::log("Unexpected response: " . json_encode($response), Debugger::ERROR);
-                $this->flashMessage('MMS check failed! Unexpected response: ' . json_encode($response), 'msg_error');
+                $msg = "Unexpected response: " . json_encode($response);
+                Debugger::log($msg, Debugger::ERROR);
+                $this->flashMessage('MMS check failed! ' . $msg, 'msg_error');
                 $this->redirect('this'); // Redirect to refresh the page and display updates
             }
             return;
@@ -201,7 +265,7 @@ final class SmsPresenter extends Nette\Application\UI\Presenter
         $this->redirect('this'); // Redirect to refresh the page and display updates
     }
 
-    private function parseDate($str): DateTime | null
+    private function parseDate($str): DateTime|null
     {
         if ($str === null)
             return null;
@@ -209,6 +273,23 @@ final class SmsPresenter extends Nette\Application\UI\Presenter
         $date = new DateTime($str);
         $date->setTimezone(new DateTimeZone('UTC'));
         return $date;
+    }
+
+    // ########################################################
+    //                     Delete MMS
+    // ########################################################
+
+    public function handleDelete($id): void
+    {
+        $rows = $this->database->table('message')->get($id)->delete();
+
+        if ($rows === 1) {
+            $this->flashMessage('MMS deleted successfully!', 'msg_success');
+            $this->redirect('this'); // Redirect to refresh the page and display updates
+        } else {
+            $this->flashMessage('MMS not found!', 'msg_error');
+            $this->redirect('this'); // Redirect to refresh the page and display updates
+        }
     }
 
     // ########################################################
@@ -234,11 +315,11 @@ final class SmsPresenter extends Nette\Application\UI\Presenter
 
         // Initialize cURL session
         $ch = curl_init();
-        
+
         try {
             // Set the URL
             curl_setopt($ch, CURLOPT_URL, $url);
-            
+
             $length = 0;
             if ($postData) {
                 curl_setopt($ch, CURLOPT_POST, 1);
@@ -246,7 +327,7 @@ final class SmsPresenter extends Nette\Application\UI\Presenter
                 $length = strlen($postData);
             }
 
-            
+
             // Set custom headers
             curl_setopt($ch, CURLOPT_HTTPHEADER, [
                 'Content-Type: application/json',

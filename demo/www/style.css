@@ -31,9 +31,13 @@ form th {
 	text-align: right;
 }
 
-/* Highlight required form fields */
-form .required label {
+form label {
 	font-weight: bold;
+}
+
+/* Highlight required form fields with an asterisk */
+form .required label::after {
+	content: "*";
 }
 
 /* Style for form error messages */
