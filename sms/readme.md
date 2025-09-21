@@ -58,7 +58,7 @@ Verify Installation:
 Check that there is a new folder `./demo/vendor`, with a content like this:
 ```
 bin/
-cmposer/
+composer/
 dibi/
 ...
 trac/
