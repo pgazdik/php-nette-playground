@@ -80,7 +80,7 @@ final class SmsPresenter extends Nette\Application\UI\Presenter
         $form = new Form;
         $form->addText('number', 'Number:')
             ->setRequired('Please enter the number.');
-        $form->addText('text', 'SMS Text:')
+        $form->addText('text', 'MMS Text:')
             ->setRequired('Please enter the text.');
         $form->addSubmit('create', 'Create');
 
@@ -96,12 +96,12 @@ final class SmsPresenter extends Nette\Application\UI\Presenter
             'status' => 'new',
         ]);
 
-        $this->flashMessage('SMS successfully created!', 'sms_success');
+        $this->flashMessage('MMS successfully created!', 'msg_success');
         $this->redirect('this'); // Redirect to refresh the page and display updates
     }
 
     // ########################################################
-    //                     SEND SMS
+    //                     SEND MMS
     // ########################################################
 
     public function handleSend($id): void
@@ -113,22 +113,21 @@ final class SmsPresenter extends Nette\Application\UI\Presenter
             $this->error('Message not found.');
         }
 
-        Debugger::log("Sending SMS: " . $message->text);
+        Debugger::log("Sending MMS: " . $message->text);
 
         $postData = json_encode([
-            "to" => $message->toNumber,
+            "to" => [$message->toNumber],
             "text" => $message->text,
             "encoding" => "unicode",
-            "flash" => false,
             "validity" => "max",
             // "send_after" => "08:00",
             // "send_before" => "21:00",
             "test" => $TEST
         ]);
 
-        $result = $this->requestToSmsGateway('sms_single', $postData);
+        $result = $this->requestToSmsGateway('mms', $postData);
         if (!$result->isSuccess) {
-            $this->flashMessage('SMS failed to send! Error: ' . $result->error, 'sms_error');
+            $this->flashMessage('MMS failed to send! Error: ' . $result->error, 'msg_error');
             $this->redirect('this'); // Redirect to refresh the page and display updates
             return;
         }
@@ -137,16 +136,16 @@ final class SmsPresenter extends Nette\Application\UI\Presenter
 
         $this->database->query('UPDATE message SET', [
             'status' => 'sent',
-            'gw_id' => $response['id'],
-            'gw_send_status' => $response['status'],
+            'gw_id' => $response->id,
+            'gw_send_status' => $response->status,
         ], 'WHERE id = ?', $id);
 
-        $this->flashMessage('SMS sent successfully!', 'sms_success');
+        $this->flashMessage('MMS sent successfully!', 'msg_success');
         $this->redirect('this'); // Redirect to refresh the page and display updates
     }
 
     // ########################################################
-    //                     CHECK SMS
+    //                     CHECK MMS
     // ########################################################
 
     public function handleCheck($id): void
@@ -155,41 +154,58 @@ final class SmsPresenter extends Nette\Application\UI\Presenter
         if (!$message) {
             $this->error('Message not found.');
         }
-        Debugger::log("Checking SMS: " . $message->text);
+        Debugger::log("Checking MMS: " . $message->text);
 
         $gwId = $message->gw_id;
 
         $result = $this->requestToSmsGateway('sent?id_from=' . $gwId . '&id_to=' . $gwId, null);
         if (!$result->isSuccess) {
-            $this->flashMessage('SMS failed to send! Error: ' . $result->error, 'sms_error');
+            $this->flashMessage('MMS failed to send! Error: ' . $result->error, 'msg_error');
             $this->redirect('this'); // Redirect to refresh the page and display updates
             return;
         }
 
         $response = $result->value;
+
+        // if the message is not yet recognized by the SMS GW, the response JSON is {"message":"Resource(s) not found"}
+        if (!is_array($response)) {
+            if (property_exists($response, 'message')) {
+                $this->flashMessage('MMS check returned: ' . $response->message, 'msg_error');
+                $this->redirect('this'); // Redirect to refresh the page and display updates
+            } else {
+                Debugger::log("Unexpected response: " . json_encode($response), Debugger::ERROR);
+                $this->flashMessage('MMS check failed! Unexpected response: ' . json_encode($response), 'msg_error');
+                $this->redirect('this'); // Redirect to refresh the page and display updates
+            }
+            return;
+        }
+
         if (sizeof($response) !== 1) {
             Debugger::log("Wrong number of responses: " . json_encode($response), Debugger::ERROR);
 
-            $this->flashMessage('SMS check failed! Expected 1 response, but got: ' . sizeof($response), 'sms_error');
+            $this->flashMessage('MMS check failed! Expected 1 response, but got: ' . sizeof($response), 'msg_error');
             $this->redirect('this'); // Redirect to refresh the page and display updates
             return;
         }
 
-        $response = $result->value[0];
+        $response = $response[0];
 
         $this->database->query('UPDATE message SET', [
-            'gw_check_status' => $response['status'],
-            'gw_error_code' => $response['error_code'],
-            'gw_send_date' => $this->parseDate($response['sending_date']),
-            'gw_delivery_date' => $this->parseDate($response['delivery_date']),
+            'gw_check_status' => $response->status,
+            'gw_error_code' => $response->error_code,
+            'gw_send_date' => $this->parseDate($response->sending_date),
+            'gw_delivery_date' => $this->parseDate($response->delivery_date),
         ], 'WHERE id = ?', $id);
 
-        $this->flashMessage('SMS checked successfully!', 'sms_success');
+        $this->flashMessage('MMS checked successfully!', 'msg_success');
         $this->redirect('this'); // Redirect to refresh the page and display updates
     }
 
-    private function parseDate($str): DateTime
+    private function parseDate($str): DateTime | null
     {
+        if ($str === null)
+            return null;
+
         $date = new DateTime($str);
         $date->setTimezone(new DateTimeZone('UTC'));
         return $date;
@@ -258,7 +274,7 @@ final class SmsPresenter extends Nette\Application\UI\Presenter
             if (curl_errno($ch)) {
                 $error = curl_error($ch);
                 Debugger::log("Curl error: " . $error, Debugger::ERROR);
-                return Maybe::error('SMS failed to send! Error: ' . $error);
+                return Maybe::error('MMS failed to send! Error: ' . $error);
             }
 
             // Get HTTP status code
@@ -266,9 +282,10 @@ final class SmsPresenter extends Nette\Application\UI\Presenter
             Debugger::log("HTTP Status Code: " . $httpCode, Debugger::DEBUG);
 
             // You can further process the response, e.g., decode JSON
-            $responseData = json_decode($response, true); // true to get an associative array
+            //$responseData = json_decode($response, true); // true to get an associative array
+            $responseData = json_decode($response); // true to get an associative array
             if (!$responseData) {
-                return Maybe::error('SMS failed to send! No response data.');
+                return Maybe::error('MMS failed to send! No response data.');
             }
 
             return Maybe::success($responseData);

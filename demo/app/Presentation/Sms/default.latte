@@ -31,12 +31,12 @@
         line-height: 1.6;
     }
 
-    div.sms_error {
+    div.msg_error {
         color: white;
         background: #f44;
     }
 
-    .sms_success {
+    .msg_success {
         color: green;
     }
 </style>
@@ -44,7 +44,7 @@
 <div class="panel left-panel">
     <h1>SMS Gateway Config</h1>
 
-    <p>Enter your SMS gateway details below.<br>They will be remembered in your session, not DB.</p>
+    <p>Enter your SMS gateway details below.<br>They will be remembered in your session, not DB.<br>Make sure the URL starts with 'http(s)://'.</p>
 
     {control smsGatewayForm}
 
@@ -61,7 +61,7 @@
     {control messageForm}
 
     {foreach $flashes as $flash}
-        {if $flash->type == 'sms_success' || $flash->type == 'sms_error'}
+        {if $flash->type == 'msg_success' || $flash->type == 'msg_error'}
             <div class="flash {$flash->type}">{$flash->message}</div>
         {/if}
     {/foreach}
