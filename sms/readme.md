@@ -106,6 +106,35 @@ That's it.
 
 (Just in case....)
 
+### Send MMS
+
+Doc: https://www.smseagle.eu/docs/apiv2/#tag/Send-messages/operation/Messages::mms_post
+
+> NOTE: Using non-ASCII characters is problematic in GitBash, better save it in a file:
+
+```bash
+echo '{ 
+            "to":["+421xyz"], 
+            "text":"MMS text používajúci diakritiku", 
+            "encoding":"unicode", 
+            "validity":"max", 
+            "send_after":"08:00", 
+            "send_before":"21:00", 
+            "test":false,
+            "attachments": [ { "content_type": "image/png", "content": "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAA3QAAAN0BcFOiBwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAASKSURBVFiFvZdrbFNlGMf/z3vOabtrO1i7bg7ZprtEN/dBshi7qxgSjRE0RIkkk/jBeCHRRIiSCDF4wQTkkpgYwwcB94XgJQ5QMgy7sBkzMwlXgQFbYMmWrWNth1uv7+OHtaPtWnc6GE9yPpznfd7n9ztv3/fkFMyMe70AfKYq5DJq1AagKKW59wH+CADeu6WAG1Zk+DWV7gBYk6T2MQDrACxfkACAXQAccblGACwvVHHwXBVv35gnBUGqKvYB0ACUAdhqMtJVAJyVIaaFwHREQi+YAOwA4AZwHsCqRAJTfZXsPVPJ7QdKODdH9WkquQFwebFx+vP37HztRDnLC1WclSGmAaxjZqjQEczMRDQIwA/gNoCxRHUHfplAgVXFi03ZuNhaavihzW1oqslERbHRFKm5MeTH5L/SBOAcAH0CYYlviSgDwElmPp+o5q1XlgAATnRP4uZwAG+/unROzeHf3DAZqX/aKy+lJBCW2J0gvSw+oamEzbuGkZEmsP4FS8zYodYJr9fH30fuUxKIDiJSAGwjwsfvN+dKACIytvKpTAyerEC6ScTMuTzgw5UBnwnA4XsSIKIik4GOGAxUffCLZWL1M9lzanKylTm59t470FTyBII8EMmJOVXzw2tUhS7WVKVXX2ot0xLBk8XaVWaYsxSTouCrBQsoCj59vj5TOfVdiVZg01Kaa81RcWTPwwaW2EhEaxYkAGDo73+8suXYBMZdoZQnN6zIwCfv5kFTqYWIiij8MtEdRGTWFHwJQa+FgpxV80R6YO0qs+GlZ7NR/JBBVw8pgZVv3Aj8eXaqI2WBKJEKIuqzWHKMAb8v5PVNaZePlVFJoT6JfS1ObN454l7oKXhUCNFlt+VrDkeDIoRQjv/6s/+n3z2GTRtyY2o/2Dks9xx0Jvupv05ZIAz/w27LtzgcDZoQAlJKaAaj8mOb279pQ+7sEhzt8GDvIScANAO4FdfqFjNfT0mAiEqFED02mz3H4WhQI/Cens6AyzUR+MvFaeOuEJZaFIw4g2j+aCjAjB3Md9988aH7FETD6xyNMfCR0WEXMz+pqDR5vMsDZmD9hzcDPr88C2B7VI/niOjNmL56NuFdeL6lLmrZT/d0BEdHRyaklE8z8zWDSt/kWbXXa6rSROupyVAwxI8z82BUHxOANGae0C1ARGVCiG6bzW6pczQmhYdrzYqC3QAKQyFsZebeeR/u/wSSwzsDo6PDLimlg5n7daxgGjNPJxpLugdm4VZ7/LKnDAdwnYiW6xYIw3tsVrulrrZBE0KBlKEwfCQVeD6AfgD5AM4QUfW8AkRUHoabY+DdnRF4rR44ADDzMIB3wrfbMPM9GcuL3gNheLfVajfXx8PHZuFX9cDjHmo1gKPMLJMKzAN3h5c9Zfh8oYbhFUKIbmuuLTsa3tXdGRhbRDgw871fIoTotebasuvrmhLBa5n5ymLAAUAVQmzJsSzJioGfbg+MOUcXHQ7MnIKXS0vLDXFwz4OAA4BCRKWeSU+lpmlKX1+vf/y2c/JBwSNRKITYL4QYF0LsB1ByP/6y673+AxCehN81VdPyAAAAAElFTkSuQmCC"} ]
+        }' > mms.json
+```
+
+```bash
+curl -H "Content-Type: application/json" \
+     -H "access-token: $TOKEN" \
+     -X POST \
+     --insecure \
+     -d @mms.json \
+     https://$SMS_GATEWAY_URL/index.php/api/v2/messages/mms
+```
+
+
 ### Send Single SMS
 
 Doc: https://www.smseagle.eu/docs/apiv2/#tag/Send-messages/operation/Messages::sms_single_post
@@ -135,7 +164,7 @@ curl -H "Content-Type: application/json" \
 }]
 ```
 
-### Read Sent SMS
+### Read Sent Message
 
 Doc: https://www.smseagle.eu/docs/apiv2/#tag/Read-messages/operation/Messages::messages_get
 
