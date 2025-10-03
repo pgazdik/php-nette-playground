@@ -16,6 +16,9 @@ Build php-fpm image
 Query DB
 > docker compose exec db-server mariadb --user=cortex --password=cortex db -e "SELECT * FROM posts;"
 
+Install Deps
+> docker compose exec -w /application/demo php-fpm composer install
+
 
 ---------
 

@@ -233,7 +233,7 @@ final class SmsPresenter extends Nette\Application\UI\Presenter
         // if the message is not yet recognized by the SMS GW, the response JSON is {"message":"Resource(s) not found"}
         if (!is_array($response)) {
             if (property_exists($response, 'message') && str_contains($response->message, 'not found')) {
-                $this->flashMessage('MMS not found yet, try again laer!', 'msg_error');
+                $this->flashMessage('MMS not found yet, try again later!', 'msg_error');
                 $this->redirect('this'); // Redirect to refresh the page and display updates
             } else {
                 $msg = "Unexpected response: " . json_encode($response);
