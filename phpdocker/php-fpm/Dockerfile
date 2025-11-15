@@ -3,9 +3,11 @@ WORKDIR "/application"
 
 RUN apt-get update \
     && apt-get -y --no-install-recommends install \
+        cron \
         php8.4-phpdbg \
         php8.4-mysql \
         php8.4-xdebug \
+        php-sqlite3 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/*
 

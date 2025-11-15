@@ -1,0 +1,25 @@
+#!/usr/bin/env php
+<?php
+declare(strict_types=1);
+file_put_contents(__DIR__ . '/../log/console-args.log', date('Y-m-d H:i:s') . ' | Args: ' . implode(' ', $argv) . PHP_EOL, FILE_APPEND | LOCK_EX);
+# This is called by the Scheduler referenced in 'scheduler.php'
+
+require __DIR__ . '/../vendor/autoload.php';
+
+$bootstrap = new App\Bootstrap;
+$container = $bootstrap->bootWebApplication();
+
+# use Tracy\Debugger;
+# Debugger::log('ARGS: ' . implode(' ', $argv));
+
+# Logs something like:
+# ARGS: bin/console scheduler:run-job <JOB_NUMBER>
+# where <JOB_NUMBER> is the index of the job from `common.neon` under `orisai.scheduler.jobs`
+
+exit($container
+    // Nette\Application\Application::class would produce errors when writing HTML...
+    // Instead we use this, relevant for CLI
+    ->getByType(Symfony\Component\Console\Application::class)
+    ->run()
+);
+

@@ -6,17 +6,9 @@ services:
 			- addExtension(Latte\Essential\RawPhpExtension())
 
 
-search:
-	-	in: %appDir%
-		classes:
-			- *Facade
-			- *Factory
-			- *Repository
-			- *Service
-
 	# This would be needed if Book was in the App\Model\Entity namespace
 	# That would be needed because it matches the folder structure app/Model/Entity which is how classes are mapped - see composer.json / autoload / psr-4
-	# However, since we are using RobotLoader, out class can be in just Model\Entity namespace
+	# However, since we are using RobotLoader (see app/Bootstrap.php), our class can be in just Model\Entity namespace
 	#
 	# leanmapper.mapper:
 	#	 class: LeanMapper\DefaultMapper

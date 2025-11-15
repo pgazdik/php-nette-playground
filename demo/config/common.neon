@@ -8,17 +8,26 @@ application:
 	mapping: App\Presentation\*\**Presenter
 
 extensions:
-    dibi: Dibi\Bridges\Nette\DibiExtension3
-    leanmapper: LeanMapper\Bridges\Nette\DI\LeanMapperExtension
+	dibi: Dibi\Bridges\Nette\DibiExtension3
+	leanmapper: LeanMapper\Bridges\Nette\DI\LeanMapperExtension
 
 latte:
-	strictTypes: yes
-	strictParsing: yes
+	strictTypes: true
+	strictParsing: true
 	extensions:
 		- App\Presentation\Accessory\LatteExtension
 
 
 di:
 	export:
-		parameters: no
-		tags: no
+		parameters: false
+		tags: false
+
+search:
+	-	in: %appDir%
+		classes:
+			- *Facade
+			- *Factory
+			- *Repository
+			- *Service
+

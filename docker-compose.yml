@@ -46,6 +46,9 @@ services:
             chown -R www-data:www-data /application/demo/www /application/demo/log /application/demo/temp &&
             chmod -R 777 /application/demo/log /application/demo/temp &&
             chmod -R 755 /application/demo/www &&
+            chmod +x /application/demo/bin/scheduler.php /application/demo/bin/console &&
+            echo '* * * * * cd /application/demo && php bin/scheduler.php >> log/scheduler.log 2>&1' | crontab - &&
+            service cron start &&
             php-fpm8.4"
 
 # This will be a Docker managed persistent volume, with the name:   php-nette-playground_db_data

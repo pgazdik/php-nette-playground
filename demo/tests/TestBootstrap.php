@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App;
+namespace Tests;
 
 use Nette;
 use Nette\Bootstrap\Configurator;
 
 
-class Bootstrap
+class TestBootstrap
 {
 	private Configurator $configurator;
 	private string $rootDir;
@@ -23,7 +23,7 @@ class Bootstrap
 	}
 
 
-	public function bootWebApplication(): Nette\DI\Container
+	public function bootTestApplication(): Nette\DI\Container
 	{
 		$this->initializeEnvironment();
 		$this->setupContainer();
@@ -33,11 +33,16 @@ class Bootstrap
 
 	private function initializeEnvironment(): void
 	{
+		$logDir = $this->rootDir . '/log/test';
+		if (!file_exists($logDir)) {
+			mkdir($logDir, 0777, true);
+		}
+
 		// To see stacktrace
 		$this->configurator->setDebugMode(true);
 		// This was here by default, no idea why.
 		//$this->configurator->setDebugMode('secret@23.75.345.200'); // enable for your remote IP
-		$this->configurator->enableTracy($this->rootDir . '/log');
+		$this->configurator->enableTracy($logDir);
 
 		$this->configurator->createRobotLoader()
 			->addDirectory(__DIR__)
@@ -52,8 +57,7 @@ class Bootstrap
 
 		$configDir = $this->rootDir . '/config';
 		$this->configurator->addConfig($configDir . '/common.neon');
-		$this->configurator->addConfig($configDir . '/scheduler.neon');
-		$this->configurator->addConfig($configDir . '/db-prod.neon');
+		$this->configurator->addConfig($configDir . '/db-test.neon');
 		$this->configurator->addConfig($configDir . '/services.neon');
 	}
 }

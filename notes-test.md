@@ -42,6 +42,8 @@ class CalculatorTest extends TestCase {
 ### Run tests
 > docker compose exec -w //application/demo php-fpm ./vendor/bin/phpunit tests --testdox
 
+`./vendor/bin/phpunit` is the path to the phpunit executable.
+`tests` is the directory where the test files are located.
 `--testdox` is optional, it will show a more readable output.
 
 ## Nette Unit Test

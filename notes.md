@@ -8,7 +8,7 @@ Run bash in php-fpm container
 > docker compose exec php-fpm bash
 
 Install dependencies
-> docker compose exec -w /application/demo php-fpm composer install
+> docker compose exec -w //application/demo php-fpm composer install
 
 Build php-fpm image
 > docker compose build php-fpm
@@ -17,9 +17,18 @@ Query DB
 > docker compose exec db-server mariadb --user=cortex --password=cortex db -e "SELECT * FROM posts;"
 
 Install Deps
-> docker compose exec -w /application/demo php-fpm composer install
+> docker compose exec -w //application/demo php-fpm composer install
 
+Run scheduler manually
+> docker compose exec -w //application/demo php-fpm php bin/scheduler.php
 
+Backup `db_data` volume
+```
+docker run --rm \
+  -v php-nette-playground_db_data:/from \
+  -v php-nette-playground_db_data2:/to \
+  ubuntu bash -c "cp -a /from/. /to/"
+```
 ---------
 
 
@@ -28,12 +37,12 @@ Install Deps
 
 ### Folder structure
 
-I use a subfolder `demo`, because creating the project with composer needed an empty folder.
+We use a subfolder `demo`, because creating the project with composer needed an empty folder.
 
 The command was:
 > docker compose exec php-fpm composer create-project nette/web-project demo
 
-Then the public directory as configured in nginx was `demo/www`, configured as:
+Then the public directory as configured in [nginx](phpdocker\nginx\nginx.conf) was `demo/www`, configured as:
 > root /application/demo/www.
 
 ### File Permissions
@@ -52,3 +61,4 @@ command: >
 The `php-fpm8.4` command is used to start the PHP-FPM server. This command is located in `/usr/sbin/php-fpm8.4`.
 
 BTW, Grok though it might need `php-fpm8.4 --nodaemonize`
+

@@ -19,7 +19,9 @@
 		"nette/utils": "^4.0",
 		"latte/latte": "^3.0",
 		"tracy/tracy": "^2.10",
-		"tharos/leanmapper": "^4.2"
+		"tharos/leanmapper": "^4.2",
+		"orisai/nette-scheduler": "^1.3",
+		"orisai/nette-console": "^1.4"
 	},
 	"require-dev": {
 		"nette/tester": "^2.5",
