@@ -1,0 +1,13 @@
+extensions:
+	orisai.scheduler: OriNette\Scheduler\DI\SchedulerExtension
+	console: OriNette\Console\DI\ConsoleExtension
+
+orisai.scheduler:
+	jobs:
+		-
+			# expression: "* * * * *"  # Cron expression for every minute
+			expression: "0 * * * *"  # Cron expression for every hour
+			callback: [@my.task1, 'run']
+
+services:
+	my.task1: Task\MyJobService1

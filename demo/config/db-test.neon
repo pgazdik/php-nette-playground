@@ -1,0 +1,25 @@
+# parameters:
+#     db:
+#         driver: sqlite
+#         host: ''
+#         database: ''
+#         username: ''
+#         password: ''
+#         lazy: true
+
+# database:
+#     dsn: 'sqlite::memory:'
+#     user: %db.username%
+#     password: %db.password%
+
+parameters:
+    db:
+        driver: sqlite
+        username: ''
+        password: ''
+
+database:
+    dsn: 'sqlite::memory:'
+    user: %db.username%
+    password: %db.password%
+
