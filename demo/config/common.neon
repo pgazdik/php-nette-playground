@@ -8,6 +8,7 @@ application:
 	mapping: App\Presentation\*\**Presenter
 
 extensions:
+	console: OriNette\Console\DI\ConsoleExtension
 	dibi: Dibi\Bridges\Nette\DibiExtension3
 	leanmapper: LeanMapper\Bridges\Nette\DI\LeanMapperExtension
 

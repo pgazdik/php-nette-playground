@@ -7,7 +7,7 @@ file_put_contents(__DIR__ . '/../log/console-args.log', date('Y-m-d H:i:s') . ' 
 require __DIR__ . '/../vendor/autoload.php';
 
 $bootstrap = new App\Bootstrap;
-$container = $bootstrap->bootWebApplication();
+$container = $bootstrap->bootApplication();
 
 # use Tracy\Debugger;
 # Debugger::log('ARGS: ' . implode(' ', $argv));

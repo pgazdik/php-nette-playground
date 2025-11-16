@@ -2,7 +2,7 @@
 require __DIR__ . '/../vendor/autoload.php';
 
 $bootstrap = new App\Bootstrap;
-$container = $bootstrap->bootWebApplication();
+$container = $bootstrap->bootApplication();
 
 // Somehow the BookRepository is missing...
 

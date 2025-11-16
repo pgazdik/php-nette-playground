@@ -1,0 +1,10 @@
+extensions:
+    migrations: Nextras\Migrations\Bridges\NetteDI\MigrationsExtension
+
+migrations:
+    # This is the directory where your migration files (SQL or PHP) will live
+    dir: %appDir%/migrations
+    # The driver for your database
+    driver: mysql # or pgsql
+    # Crucially, tell it to use the Nette Database Adapter
+    dbal: nette
