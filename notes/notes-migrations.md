@@ -29,12 +29,16 @@ Nextras expects `demo/app/migrations` to be organized into subdirectories based 
 ```
 migrations/
 ├── structure/
-├── data/
-└── dummy/
+├── basic-data/
+└── dummy-data/
 ```
 
 For DDL like creating a table, we add an SQL file to the `structure` directory, called e.g. `2025-12-31-18-00-00_create_my_table.sql`.
 
+> NOTE: Files are executed in lexicographical order.
+
+
+Doc: https://nextras.org/migrations/docs/master/
 
 ### Run the Migration
 
