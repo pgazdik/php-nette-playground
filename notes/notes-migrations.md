@@ -28,7 +28,7 @@ migrations:
 Nextras expects `demo/app/migrations` to be organized into subdirectories based on the type of change: 
 ```
 migrations/
-├── structure/
+├── structures/
 ├── basic-data/
 └── dummy-data/
 ```

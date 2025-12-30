@@ -1,5 +1,6 @@
 services:
 	- App\Core\RouterFactory::createRouter
+	- App\Service\EventService
 
 	latte.latteFactory:
 		setup:
