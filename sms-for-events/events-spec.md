@@ -17,11 +17,18 @@ Now, I want to create a new separate feature for Events. It will also have two p
 Please create an Event entity, a migration script for the Event table and a presenter for creating and listing events.
 
 
+class EventManager {
+    public function __construct(
+        private EventService $events,
+        private NotificationService $notifications
+    ) {}
 
-When creating an event, create one or two Messages as well.
-
-If event is at least 
-
+    public function createFullEvent(array $data) {
+        $event = $this->events->create($data);
+        $this->notifications->createNotification($event);
+        return $event;
+    }
+}
 
 Tests:
 > docker compose exec -w //application/demo php-fpm ./vendor/bin/phpunit tests --filter EventServiceTest --testdox

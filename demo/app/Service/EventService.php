@@ -1,7 +1,11 @@
 <?php
 namespace App\Service;
 
+use DateTimeZone;
+
 use App\Model\Entity\Event;
+use App\Utils\DateUtils;
+
 use Nette\Database\Explorer;
 use Nette\Database\Table\ActiveRow;
 
@@ -19,11 +23,10 @@ class EventService
             'phone_number' => $event->phoneNumber,
             'doctor_name' => $event->doctorName,
             'doctor_address' => $event->doctorAddress,
-            'appointment_date' => $event->appointmentDate,
+            'appointment_date' => DateUtils::baToUtc($event->appointmentDate),
             'attachment_content' => $event->attachmentContent,
             'attachment_name' => $event->attachmentName,
-            'attachment_type' => $event->attachmentType,
-            'created_at' => new \DateTime('now', new \DateTimeZone('UTC')),
+            'attachment_type' => $event->attachmentType
         ]);
     }
 
@@ -51,12 +54,12 @@ class EventService
             phoneNumber: $row->phone_number,
             doctorName: $row->doctor_name,
             doctorAddress: $row->doctor_address,
-            appointmentDate: (clone $row->appointment_date)->setTimezone(new \DateTimeZone('UTC')),
+            appointmentDate: DateUtils::utcToBa($row->appointment_date),
             attachmentContent: $row->attachment_content ?? null,
             attachmentName: $row->attachment_name,
             attachmentType: $row->attachment_type,
             id: $row->id,
-            createdAt: (clone $row->created_at)->setTimezone(new \DateTimeZone('UTC'))
+            createdAt: DateUtils::utcToBa($row->created_at)
         );
     }
 }

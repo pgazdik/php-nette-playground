@@ -3,6 +3,7 @@ namespace App\Presentation\Event;
 
 use App\Model\Entity\Event;
 use App\Service\EventService;
+use App\Utils\DateUtils;
 use Nette;
 use Nette\Application\UI\Form;
 
@@ -110,7 +111,7 @@ final class EventPresenter extends Nette\Application\UI\Presenter
             phoneNumber: $data['phoneNumber'],
             doctorName: $data['doctorName'],
             doctorAddress: $data['doctorAddress'],
-            appointmentDate: (new \DateTime($data['appointmentDate']))->setTimezone(new \DateTimeZone('UTC')),
+            appointmentDate: DateUtils::newBaDate($data['appointmentDate']),
             attachmentContent: $attachmentContent,
             attachmentName: $attachmentName,
             attachmentType: $attachmentType
