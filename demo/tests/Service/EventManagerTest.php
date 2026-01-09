@@ -96,7 +96,7 @@ class EventManagerTest extends EventDbTestCase
         $eventId1 = $this->eventRepository->create($event1);
 
         $msg1_1 = $this->createNotificationMsg($eventId1, 1, MediaType::Text, "E1 Text", NotificationMsgStatus::New);
-        $msgId1_1 = $this->otificationMsgRepository->create($msg1_1);
+        $this->otificationMsgRepository->create($msg1_1);
 
         $msg1_2 = $this->createNotificationMsg($eventId1, 2, MediaType::Image, "", NotificationMsgStatus::New);
         $this->otificationMsgRepository->create($msg1_2);
@@ -106,10 +106,10 @@ class EventManagerTest extends EventDbTestCase
         $eventId2 = $this->eventRepository->create($event2);
 
         $msg2_1 = $this->createNotificationMsg($eventId2, 1, MediaType::Text, "E2 Text", NotificationMsgStatus::New);
-        $msgId2 = $this->otificationMsgRepository->create($msg2_1);
+        $this->otificationMsgRepository->create($msg2_1);
 
         // 3. Approve (Schedule) Event 1
-        $this->eventManager->approveNotification($msgId1_1);
+        $this->eventManager->approveNotification($msg1_1->id);
 
         // 4. Verify Event 1 notifications are Scheduled
         $msgs1 = $this->database->table('notification_msg')
@@ -134,7 +134,7 @@ class EventManagerTest extends EventDbTestCase
         }
 
         // 5. Verify Event 2 notification is still New
-        $row2 = $this->database->table('notification_msg')->get($msgId2);
+        $row2 = $this->database->table('notification_msg')->get($msg2_1->id);
         $this->assertEquals(NotificationMsgStatus::New ->value, $row2->status);
     }
 }

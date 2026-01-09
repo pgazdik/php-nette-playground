@@ -2,12 +2,13 @@
 namespace App\Presentation\Notification;
 
 use App\Service\NotificationMsgRepository;
-use App\Service\otificationMsgRepository;
 use App\Service\EventManager;
-use App\Model\Entity\Event\NotificationMsgStatus;
-use App\Model\Entity\Event\MediaType;
-use Nette;
+use App\Utils\DebuggerUtils;
 use Nette\Application\UI\Form;
+use Tracy\Debugger;
+
+use Exception;
+use Nette;
 
 final class NotificationPresenter extends Nette\Application\UI\Presenter
 {
@@ -114,7 +115,8 @@ final class NotificationPresenter extends Nette\Application\UI\Presenter
         try {
             $this->eventManager->approveNotification($id);
             $this->flashMessage('Notifications for the event have been scheduled.', 'msg_success');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
+            DebuggerUtils::logException($e, "Failed to approve notification #{$id}");
             $this->flashMessage('Failed to approve notification: ' . $e->getMessage(), 'msg_error');
         }
         $this->redirect('this');

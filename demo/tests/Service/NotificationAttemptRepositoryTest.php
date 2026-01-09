@@ -38,7 +38,7 @@ class NotificationAttemptRepositoryTest extends EventDbTestCase
         $eventId1 = $this->eventRepository->create($event1);
 
         $msg = $this->createTextNotificationMsg($eventId1, 1, "First Msg", NotificationMsgStatus::Scheduled, $pastDate);
-        $msg->id = $this->notificationMsgRepository->create($msg);
+        $this->notificationMsgRepository->create($msg);
 
         $firstAttempt = NotificationAttempt::createFirstAttempt($msg);
         $firstAttempt->status = NotificationAttemptStatus::Failed;

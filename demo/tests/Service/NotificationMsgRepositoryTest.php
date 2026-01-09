@@ -60,14 +60,14 @@ class NotificationMsgRepositoryTest extends EventDbTestCase
         $eventId = $this->eventRepository->create($event);
 
         $msg = $this->createNotificationMsg($eventId, 1, MediaType::Text, 'Original Text', NotificationMsgStatus::New);
-        $msgId = $this->otificationMsgRepository->create($msg);
+        $this->otificationMsgRepository->create($msg);
 
         // 2. Update Text
         $newText = 'Updated Text Content';
-        $this->otificationMsgRepository->updateText($msgId, $newText);
+        $this->otificationMsgRepository->updateText($msg->id, $newText);
 
         // 3. Verify
-        $updatedMsg = $this->otificationMsgRepository->getById($msgId);
+        $updatedMsg = $this->otificationMsgRepository->getById($msg->id);
         $this->assertEquals($newText, $updatedMsg->text);
     }
 }

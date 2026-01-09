@@ -4,9 +4,12 @@ namespace App\Service;
 
 use App\Model\Entity\Event\MediaType;
 use App\Model\Entity\Event\NotificationAttempt;
+use App\Model\Entity\Event\NotificationAttemptStatus;
 use App\Model\Entity\Event\NotificationMsg;
 use Nette\Database\Explorer;
 use Tracy\Debugger;
+
+use DateTime;
 
 class NotificationManager
 {
@@ -21,22 +24,19 @@ class NotificationManager
     ) {
     }
 
-    public function checkStatusOfSentNotifications(): void
-    {
-
-
-    }
+    //
+    // Sending Notifications
+    //
 
     public function sendEligibleNotifications(): void
     {
-        while (true) {
-            $msgAttempts = $this->notificationAttemptRepository->listToSend();
-            if (count($msgAttempts) === 0) {
-                return; // No more messages to send
-            }
-            foreach ($msgAttempts as $attempt) {
-                $this->sendNotification($attempt);
-            }
+        // TODO add locking
+        $msgAttempts = $this->notificationAttemptRepository->listToSend();
+        if (count($msgAttempts) === 0) {
+            return; // No more messages to send
+        }
+        foreach ($msgAttempts as $attempt) {
+            $this->sendNotification($attempt);
         }
     }
 
@@ -70,6 +70,8 @@ class NotificationManager
         if (!$result->isSuccess) {
             // sending error
             $this->notificationAttemptRepository->noteMessageSendErrorAndReschedule($attempt, $result->error);
+            $this->scheduleNextAttempt($attempt);
+
             return;
         }
 
@@ -98,5 +100,96 @@ class NotificationManager
 
             return [$event, null, $attachements];
         }
+    }
+
+    //
+    // Checking Notifications
+    //
+
+    public function checkStatusOfSentNotifications(): void
+    {
+        $msgAttempts = $this->notificationAttemptRepository->listToCheck();
+        if (count($msgAttempts) === 0) {
+            return; // No more messages to send
+        }
+        foreach ($msgAttempts as $attempt) {
+            $this->checkNotification($attempt);
+        }
+    }
+
+    private function checkNotification(NotificationAttempt $attempt)
+    {
+        Debugger::log("Checking notification, attempt id: {$attempt->id}", "info");
+
+        $gwId = $attempt->gwId;
+
+        $result = $this->smsGwService->requestToSmsGateway('sent?id_from=' . $gwId . '&id_to=' . $gwId, null);
+        if (!$result->isSuccess) {
+            // TODO think later how to handle these errors
+            Debugger::log('MMS check failed! Error: ' . $result->error, Debugger::ERROR);
+            return;
+        }
+
+        $response = $result->value;
+
+        // if the message is not yet recognized by the SMS GW, the response JSON is {"message":"Resource(s) not found"}
+        if (!is_array($response)) {
+            if (property_exists($response, 'message') && str_contains($response->message, 'not found')) {
+                // TODO think later how to handle these errors
+                Debugger::log('MMS not found yet, try again later!;', Debugger::INFO);
+
+            } else {
+                // TODO think later how to handle these errors
+                $msg = "Unexpected response: " . json_encode($response);
+                Debugger::log($msg, Debugger::ERROR);
+            }
+            return;
+        }
+
+        if (sizeof($response) !== 1) {
+            // TODO think later how to handle these errors
+            Debugger::log("Wrong number of responses: " . json_encode($response), Debugger::ERROR);
+            return;
+        }
+
+        $response = $response[0];
+
+        $gwDeliveryDate = $response->delivery_date;
+        $delivered = $gwDeliveryDate !== null;
+        $newStatus = $delivered ? NotificationAttemptStatus::Delivered : NotificationAttemptStatus::Failed;
+
+        $this->notificationAttemptRepository->update(
+            $attempt,
+            $newStatus,
+            $response->status,
+            $response->error_code,
+            $response->sending_date ? new DateTime($response->sending_date) : null,
+            $gwDeliveryDate ? new DateTime($gwDeliveryDate) : null
+        );
+
+        if ($delivered) {
+            $this->scheduleAttemptForNextMessage($attempt);
+        } else {
+            // $this->scheduleNextAttempt($attempt);
+        }
+
+    }
+
+    private function scheduleNextAttempt(NotificationAttempt $attempt): void
+    {
+        $nextAttempt = NotificationAttempt::createNextAttempt($attempt);
+        $this->notificationAttemptRepository->create($nextAttempt);
+    }
+
+    private function scheduleAttemptForNextMessage(NotificationAttempt $attempt): void
+    {
+        $msg = $attempt->msg;
+        $nextNotificationMsg = $this->notificationMsgRepository->findNextMessage($msg);
+        if (!$nextNotificationMsg) {
+            Debugger::log("All notifications were sent for event: {$msg->eventId}");
+            return;
+        }
+
+        $this->notificationAttemptRepository->create(NotificationAttempt::createFirstAttempt($nextNotificationMsg));
     }
 }

@@ -17,7 +17,7 @@ class NotificationMsgRepository
     ) {
     }
 
-    public function create(NotificationMsg $msg): int
+    public function create(NotificationMsg $msg): void
     {
         $row = $this->database->table('notification_msg')->insert([
             'event_id' => $msg->eventId,
@@ -29,7 +29,7 @@ class NotificationMsgRepository
             'send_at' => DateUtils::baToUtc($msg->sendAt),
         ]);
 
-        return $row->id;
+        $msg->id = $row->id;
     }
 
     public function getCount(): int
@@ -120,6 +120,21 @@ class NotificationMsgRepository
     }
 
     //
+    // Find next message
+    //
+
+    public function findNextMessage(NotificationMsg $prevMessage): ?NotificationMsg
+    {
+        $row = $this->database->table('notification_msg')
+            ->where('event_id', $prevMessage->eventId)
+            ->where('msg_index', $prevMessage->msgIndex + 1)
+            ->fetch();
+
+        return $row ? self::toNotificationMsg($row) : null;
+    }
+
+
+    //
     // Helpers
     //
 
@@ -130,7 +145,6 @@ class NotificationMsgRepository
             $msgs[] = self::toNotificationMsg($row);
         }
         return $msgs;
-
     }
 
     public static function toNotificationMsg(ActiveRow|IRow $row): NotificationMsg

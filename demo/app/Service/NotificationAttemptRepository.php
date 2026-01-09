@@ -7,6 +7,8 @@ use App\Utils\DateUtils;
 use Nette\Database\Explorer;
 use Nette\Database\Table\ActiveRow;
 
+use DateTime;
+
 class NotificationAttemptRepository
 {
     public function __construct(
@@ -18,7 +20,7 @@ class NotificationAttemptRepository
     // Create
     //
 
-    public function create(NotificationAttempt $attempt): int
+    public function create(NotificationAttempt $attempt): void
     {
         $row = $this->database->table('notification_attempt')->insert([
             'notification_msg_id' => $attempt->notificationMsgId,
@@ -34,14 +36,41 @@ class NotificationAttemptRepository
             'gw_delivery_date' => $attempt->gwDeliveryDate,
         ]);
 
-        return $row->id;
+        $attempt->id = $row->id;
+    }
+
+    public function update(
+        NotificationAttempt $attempt,
+        NotificationAttemptStatus $newStatus,
+        string $gwCheckStatus,
+        ?int $gwErrorCode,
+        ?DateTime $gwSendDate,
+        ?DateTime $gwDeliveryDate
+    ): void {
+
+        $this->database->table('notification_attempt')
+            ->where('id', $attempt->id)
+            ->update([
+                'status' => $newStatus->value,
+                'gw_check_status' => $gwCheckStatus,
+                'gw_error_code' => $gwErrorCode,
+                'gw_send_date' => $gwSendDate,
+                'gw_delivery_date' => $gwDeliveryDate ? DateUtils::baToUtc($gwDeliveryDate) : $attempt->gwDeliveryDate,
+            ]);
+
+        // Update the attempt object to reflect the changes
+        $attempt->status = $newStatus;
+        $attempt->gwCheckStatus = $gwCheckStatus;
+        $attempt->gwErrorCode = $gwErrorCode;
+        $attempt->gwSendDate = $gwSendDate ?: $attempt->gwSendDate;
+        $attempt->gwDeliveryDate = $gwDeliveryDate ?: $attempt->gwDeliveryDate;
     }
 
     //
     // Sending
     //
 
-    //@return NotificationAttempt[]
+    /** @return NotificationAttempt[] */
     public function listToSend(): array
     {
         $rows = $this->database->table('notification_attempt')
@@ -56,11 +85,22 @@ class NotificationAttemptRepository
     // Checking
     //
 
-    //@return NotificationAttempt[]
+    /** @return NotificationAttempt[] */
     public function listToCheck(): array
     {
         $rows = $this->database->table('notification_attempt')
             ->where('status = ?', NotificationAttemptStatus::Sent->value)
+            ->fetchAll();
+
+        return self::toNotificationAttempts($rows, true);
+    }
+
+    /** @return NotificationAttempt[] */
+    public function listByMsgId(int $msgId): array
+    {
+        $rows = $this->database->table('notification_attempt')
+            ->where('notification_msg_id', $msgId)
+            ->order('attempt_no ASC')
             ->fetchAll();
 
         return self::toNotificationAttempts($rows, true);
@@ -130,10 +170,5 @@ class NotificationAttemptRepository
         // Update the attempt object to reflect the changes
         $attempt->status = NotificationAttemptStatus::Failed;
         $attempt->sendingError = $error;
-
-        $delayInMinutes = min(60, pow(2, $attempt->attemptNo - 1));
-        $nextAttempt = NotificationAttempt::createNextAttempt($attempt, $delayInMinutes);
-
-        $this->create($nextAttempt);
     }
 }

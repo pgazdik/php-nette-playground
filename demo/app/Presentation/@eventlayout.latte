@@ -61,9 +61,9 @@
 <body>
     <nav class="navbar">
         <a n:href=":Event:default" n:class="$presenter->isLinkCurrent(':Event:default') ? active">Events</a>
-        <a n:href=":Notification:default" n:class="$presenter->isLinkCurrent(':Notification:default') ? active">Notifications</a>
         <a n:href=":Notification:toApprove" n:class="$presenter->isLinkCurrent(':Notification:toApprove') ? active">To Approve</a>
         <a n:href=":Notification:scheduled" n:class="$presenter->isLinkCurrent(':Notification:scheduled') ? active">Scheduled</a>
+        <a n:href=":Notification:default" n:class="$presenter->isLinkCurrent(':Notification:default') ? active">All Notifications</a>
     </nav>
 
     <main class="content">
