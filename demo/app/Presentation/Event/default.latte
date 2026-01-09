@@ -1,0 +1,59 @@
+{block content}
+<h1>Events</h1>
+
+{control eventForm}
+
+<table class="events-table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Patient</th>
+            <th>Phone</th>
+            <th>Doctor</th>
+            <th>Address</th>
+            <th>Appointment</th>
+            <th>Attachment</th>
+            <th>Created</th>
+        </tr>
+    </thead>
+    <tbody>
+        {foreach $events as $event}
+            <tr>
+                <td>{$event->id}</td>
+                <td>{$event->patientName}</td>
+                <td>{$event->phoneNumber}</td>
+                <td>{$event->doctorName}</td>
+                <td>{$event->doctorAddress}</td>
+                <td>{$event->appointmentDate|date:'d.m.y H:i'}</td>
+                <td>{$event->attachmentName}</td>
+                <td>{$event->createdAt|date:'d.m.y H:i'}</td>
+            </tr>
+        {/foreach}
+    </tbody>
+</table>
+
+<style>
+    .events-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        background: white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .events-table th,
+    .events-table td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .events-table th {
+        background-color: #f5f5f5;
+        font-weight: bold;
+    }
+
+    .events-table tr:hover {
+        background-color: #f9f9f9;
+    }
+</style>

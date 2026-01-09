@@ -1,0 +1,4 @@
+services:
+	# Override the original service
+	smsGwService:
+		create: Tests\Service\SmsGwMockService

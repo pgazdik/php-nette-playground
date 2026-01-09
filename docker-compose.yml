@@ -8,7 +8,7 @@ services:
         #working_dir: /application
         volumes:
             #- '.:/application'
-            - db_data:/var/lib/mysql
+            - db_data_tmp:/var/lib/mysql
             - ./db_init:/docker-entrypoint-initdb.d # Directory for init scripts
         environment:
             - MYSQL_ROOT_PASSWORD=cortex
@@ -30,6 +30,8 @@ services:
     php-fpm:
         build: phpdocker/php-fpm
         working_dir: /application
+        env_file:
+          - .env
         # Not sure if PHP_IDE_CONFIG is needed, check later.
         environment:
             PHP_IDE_CONFIG: "serverName=Docker"
@@ -37,6 +39,8 @@ services:
             - '9003:9003'  # Expose Xdebug port
         volumes:
             - '.:/application'
+            # comment out to use vendor dir from host (much slower)
+            - 'vendor:/application/demo/vendor'
             - './phpdocker/php-fpm/php-ini-overrides.ini:/etc/php/8.4/fpm/conf.d/99-overrides.ini'
             - './phpdocker/php-fpm/php-ini-overrides.ini:/etc/php/8.4/cli/conf.d/99-overrides.ini'
 
@@ -53,4 +57,5 @@ services:
 
 # This will be a Docker managed persistent volume, with the name:   php-nette-playground_db_data
 volumes:
-  db_data:
+  db_data_tmp:
+  vendor:

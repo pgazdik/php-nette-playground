@@ -30,28 +30,39 @@ class TestBootstrap
 
 	private function initializeEnvironment(): void
 	{
-		$logDir = $this->rootDir . '/log/test';
+		// We just configure log directory so logging works, but we don't call enableTracy as that would lead to problems with custom exception and error handlers
+		// * Test code or tested code did not remove its own error handlers
+		// * Test code or tested code did not remove its own exception handlers
+
+		//OR
+
+		// Test code or tested code removed error handlers other than its own
+
+		$logDir = "$this->rootDir/log/test";
 		if (!file_exists($logDir)) {
 			mkdir($logDir, 0777, true);
 		}
+		\Tracy\Debugger::$logDirectory = $logDir;
+		
+		//$this->configurator->enableTracy($logDir);
 
 		// To see stacktrace
-		$this->configurator->setDebugMode(true);
+		// $this->configurator->setDebugMode(true);
 		// This was here by default, no idea why.
 		//$this->configurator->setDebugMode('secret@23.75.345.200'); // enable for your remote IP
-		$this->configurator->enableTracy($logDir);
+
 
 		$this->configurator->createRobotLoader()
 			->addDirectory(__DIR__)
 			->register();
 	}
 
-
 	private function setupContainer(): void
 	{
 		$configDir = $this->rootDir . '/config';
-		$this->configurator->addConfig($configDir . '/common.neon');
-		$this->configurator->addConfig($configDir . '/db-test.neon');
-		$this->configurator->addConfig($configDir . '/services.neon');
+		$this->configurator->addConfig("$configDir/common.neon");
+		$this->configurator->addConfig("$configDir/db-test.neon");
+		$this->configurator->addConfig("$configDir/services.neon");
+		$this->configurator->addConfig("$configDir/services-test.neon");
 	}
 }

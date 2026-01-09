@@ -1,5 +1,12 @@
 services:
 	- App\Core\RouterFactory::createRouter
+	- App\Service\EventManager
+	- App\Service\EventRepository
+	- App\Service\NotificationMsgRepository
+	- App\Service\NotificationManager
+	- App\Service\NotificationAttemptRepository
+	- App\Service\LockService
+	smsGwService: App\Service\SmsGwService(::getenv('SMS_GW_URL'), ::getenv('SMS_GW_TOKEN'))
 
 	latte.latteFactory:
 		setup:
