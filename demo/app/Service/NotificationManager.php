@@ -22,6 +22,7 @@ class NotificationManager
         private NotificationMsgRepository $notificationMsgRepository,
         private NotificationAttemptRepository $notificationAttemptRepository,
         private SmsGwService $smsGwService,
+        private LockService $lockService,
     ) {
     }
 
@@ -31,13 +32,18 @@ class NotificationManager
 
     public function sendEligibleNotifications(): void
     {
-        // TODO add locking
         $msgAttempts = $this->notificationAttemptRepository->listToSend();
         if (count($msgAttempts) === 0) {
             return; // No more messages to send
         }
         foreach ($msgAttempts as $attempt) {
-            $this->sendNotification($attempt);
+            if ($this->acquireMsgLock($attempt->msg)) {
+                try {
+                    $this->sendNotification($attempt);
+                } finally {
+                    $this->releaseMsgLock($attempt->msg);
+                }
+            }
         }
     }
 
@@ -50,8 +56,24 @@ class NotificationManager
         if ($attempt->status !== NotificationAttemptStatus::Scheduled)
             return "Cannot send message, seems it was sent already?";
 
-        $this->sendNotification($attempt);
-        return null;
+        if (!$this->acquireMsgLock($attempt->msg))
+            return "Cannot send message, another process is sending right now!";
+
+        try {
+            $this->sendNotification($attempt);
+            return null;
+        } finally {
+            $this->releaseMsgLock($attempt->msg);
+        }
+    }
+
+    private function acquireMsgLock(NotificationMsg $msg, int $timeout = 0): bool
+    {
+        return $this->lockService->acquireLock("notification_msg_{$msg->id}", $timeout);
+    }
+    private function releaseMsgLock(NotificationMsg $msg): void
+    {
+        $this->lockService->releaseLock("notification_msg_{$msg->id}");
     }
 
     private function sendNotification(NotificationAttempt $attempt): void
@@ -127,21 +149,34 @@ class NotificationManager
             return; // No more messages to send
         }
         foreach ($msgAttempts as $attempt) {
-            $this->checkNotificationStatus($attempt);
+            if ($this->acquireMsgLock($attempt->msg))
+                try {
+                    $this->checkNotificationStatus($attempt);
+                } finally {
+                    $this->releaseMsgLock($attempt->msg);
+                }
         }
     }
 
     public function forceCheckStatus(int $attemptId): ?string
     {
         $attempt = $this->notificationAttemptRepository->getById($attemptId);
-        if (!$attempt) 
+        if (!$attempt)
             return "Cannot check message, corresponding Attempt($attemptId) not found!";
-        
-        if ($attempt->status !== NotificationAttemptStatus::Sent) 
-            return "Cannot send message, status is not 'Sent', but: " . $attempt->status->value;   
 
-        $this->checkNotificationStatus($attempt);
-        return null;
+        if ($attempt->status !== NotificationAttemptStatus::Sent)
+            return "Cannot check message, status is not 'Sent', but: " . $attempt->status->value;
+
+        if (!$this->acquireMsgLock($attempt->msg))
+            return "Cannot check message, another process is sending right now!";
+
+        try {
+            $this->checkNotificationStatus($attempt);
+            return null;
+
+        } finally {
+            $this->releaseMsgLock($attempt->msg);
+        }
     }
 
     private function checkNotificationStatus(NotificationAttempt $attempt)

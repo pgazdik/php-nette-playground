@@ -31,7 +31,12 @@
                         {input $container['text'], class => 'edit-textarea'}
                     </div>
                 </td>
-                <td>{$notification->sendAt|date:'d.m.y H:i'}</td>
+                <td>
+                    <span id="sendAt-view-{$notification->id}">{$notification->sendAt|date:'d.m.y H:i'}</span>
+                    <div id="sendAt-edit-{$notification->id}" style="display:none;">
+                        {input $container['sendAt'], class => 'edit-textarea'}
+                    </div>
+                </td>
                 <td>{$notification->createdAt|date:'d.m.y H:i'}</td>
                 <td>
                     <button type="button" id="btn-edit-{$notification->id}" onclick="toggleEdit({$notification->id})" class="btn btn-save">Edit</button>
@@ -63,6 +68,8 @@
 function toggleEdit(id) {
     var view = document.getElementById('text-view-' + id);
     var edit = document.getElementById('text-edit-' + id);
+    var viewSendAt = document.getElementById('sendAt-view-' + id);
+    var editSendAt = document.getElementById('sendAt-edit-' + id);
     var btnEdit = document.getElementById('btn-edit-' + id);
     var btnApprove = document.getElementById('btn-approve-' + id);
     var actionGroup = document.getElementById('action-group-' + id);
@@ -71,6 +78,8 @@ function toggleEdit(id) {
         // Cancel edit / Show view
         view.style.display = 'block';
         edit.style.display = 'none';
+        viewSendAt.style.display = 'block';
+        editSendAt.style.display = 'none';
         btnEdit.style.display = 'inline-block';
         btnApprove.style.display = 'inline-block';
         actionGroup.style.display = 'none';
@@ -78,6 +87,8 @@ function toggleEdit(id) {
         // Enable edit
         view.style.display = 'none';
         edit.style.display = 'block';
+        viewSendAt.style.display = 'none';
+        editSendAt.style.display = 'block';
         btnEdit.style.display = 'none';
         btnApprove.style.display = 'none';
         actionGroup.style.display = 'block'; // Show div containing Save and Cancel

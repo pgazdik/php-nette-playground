@@ -4,6 +4,8 @@ namespace App\Presentation\Event;
 use App\Model\Entity\Event\Event;
 use App\Service\EventRepository;
 use App\Service\EventManager;
+use App\Service\NotificationMsgRepository;
+use App\Service\NotificationAttemptRepository;
 use App\Utils\DateUtils;
 use Nette;
 use Nette\Application\UI\Form;
@@ -12,7 +14,9 @@ final class EventPresenter extends Nette\Application\UI\Presenter
 {
     public function __construct(
         private EventRepository $eventRepository,
-        private EventManager $eventManager
+        private EventManager $eventManager,
+        private NotificationMsgRepository $notificationMsgRepository,
+        private NotificationAttemptRepository $notificationAttemptRepository
     ) {
     }
 
@@ -25,6 +29,24 @@ final class EventPresenter extends Nette\Application\UI\Presenter
     public function renderDefault(): void
     {
         $this->template->events = $this->eventRepository->getAll();
+    }
+
+    public function renderShow(int $id): void
+    {
+        $event = $this->eventRepository->getByIdWithImage($id);
+        if (!$event) {
+            $this->error('Event not found');
+        }
+
+        $this->template->event = $event;
+        $notifications = $this->notificationMsgRepository->getAllByEventId($id);
+        $this->template->notifications = $notifications;
+
+        $attempts = [];
+        foreach ($notifications as $msg) {
+            $attempts[$msg->id] = $this->notificationAttemptRepository->listLatestByMsgId($msg->id, 10);
+        }
+        $this->template->attempts = $attempts;
     }
 
     protected function createComponentEventForm(): Form

@@ -1,0 +1,77 @@
+{block content}
+<h1>Event #{$event->id}</h1>
+
+<div class="event-details">
+    <p><strong>Patient:</strong> {$event->patientName}</p>
+    <p><strong>Phone:</strong> {$event->phoneNumber}</p>
+    <p><strong>Date:</strong> {$event->appointmentDate|date:'d.m.y'}</p>
+    <p><strong>Time:</strong> {$event->appointmentDate|date:'H:i'}</p>
+    <p><strong>Doctor Name:</strong> {$event->doctorName}</p>
+    <p><strong>Doctor Address:</strong> {$event->doctorAddress}</p>
+</div>
+
+<h2>Notifications</h2>
+
+{if count($notifications) === 0}
+    <p>No notifications found for this event.</p>
+{else}
+    {foreach $notifications as $msg}
+        <div n:class="notification-block, 'status-' . $msg->status->value">
+            <h3 class="status-cell" style="padding-left: 10px;">Notification #{$msg->id} - <span class="pill">{$msg->status->value}</span></h3>
+            {if $msg->text}
+                <p><strong>Text:</strong> {$msg->text}</p>
+            {else}
+                <p><strong>TODO show image</strong></p>
+            {/if}
+            <p><strong>Scheduled:</strong> {$msg->sendAt|date:'d.m.y H:i'}</p>
+
+            <table class="data-table nomargin">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Status</th>
+                        <th>Scheduled</th>
+                        <th>GW ID</th>
+                        <th>GW Status</th>
+                        <th>GW Send</th>
+                        <th>GW Delivery</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {foreach $attempts[$msg->id] as $attempt}
+                        <tr n:class="'status-' . $attempt->status->value">
+                            <td class="status-cell">{$attempt->attemptNo}</td>
+                            <td><span class="pill">{$attempt->status->value}</span></td>
+                            <td>{$attempt->sendAt|date:'d.m.y H:i'}</td>
+                            <td>{$attempt->gwId}</td>
+                            <td>{$attempt->gwSendStatus}</td>
+                            <td>{if $attempt->gwSendDate}{$attempt->gwSendDate|date:'d.m.y H:i:s'}{else}-{/if}</td>
+                            <td>{if $attempt->gwDeliveryDate}{$attempt->gwDeliveryDate|date:'d.m.y H:i:s'}{else}-{/if}</td>
+                        </tr>
+                        {if $attempt->sendingError}
+                        <tr n:class="'status-' . $attempt->status->value">
+                            <td class="status-cell" ></td>
+                            <td colspan="6">{$attempt->sendingError}</td>
+                        </tr>
+                        {/if}
+                    {/foreach}
+                </tbody>
+            </table>
+        </div>
+        <hr>
+    {/foreach}
+{/if}
+
+<a n:href="default" class="btn btn-cancel">Back to List</a>
+
+<style>
+    .event-details p {
+        margin: 5px 0;
+    }
+    .notification-block {
+        margin-top: 0;
+        padding: 10px;
+        background-color: #f9f9f9;
+        border: 1px solid #eee;
+    }
+</style>

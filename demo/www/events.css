@@ -1,3 +1,15 @@
+p {
+    margin: 5px 0;
+}
+
+h2 {
+    margin: 12px 0;
+}
+
+.nomargin {
+    margin: 0 !important;
+}
+
 /* Tables */
 .data-table {
     width: 100%;
@@ -9,7 +21,7 @@
 
 .data-table th,
 .data-table td {
-    padding: 12px 15px;
+    padding: 8px 10px;
     text-align: left;
     border-bottom: 1px solid #e0e0e0;
 }
@@ -55,7 +67,7 @@
 }
 
 .btn-save {
-    background-color: #00008B; /* Dark Blue */
+    background-color: #1010ab; /* Dark Blue */
 }
 
 .btn-save:hover {
@@ -64,12 +76,12 @@
 
 .btn-approve,
 .btn-send {
-    background-color: #28a745; /* Green */
+    background-color: #229525; /* Green */
 }
 
 .btn-approve:hover,
 .btn-send:hover {
-    background-color: #218838;
+    background-color: #157c19;
 }
 
 .btn-check {
@@ -100,3 +112,60 @@
     border-radius: 4px;
     font-family: inherit;
 }
+
+
+/* Status Highlighting */
+:root {
+    --success-bg: #e6f4ea;
+    --success-text: #137333;
+    --success-border: #34a853;
+    
+    --failed-bg: #fce8e6;
+    --failed-text: #c5221f;
+    --failed-border: #ea4335;
+    
+    --scheduled-bg: #fef7e0;
+    --scheduled-text: #b05500;
+    --scheduled-border: #fbbc04;
+
+    --sent-bg: #e8f0fe;
+    --sent-text: #1967d2;
+    --sent-border: #4285f4;
+
+    --new-bg: #f1f3f4;
+    --new-text: #3c4043;
+    --new-border: #9aa0a6;
+}
+
+.status-cell {
+    border-left: 4px solid transparent;
+}
+
+.pill {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+/* Success/Delivered Styling */
+tr.status-delivered .status-cell, tr.status-success .status-cell, .status-delivered .status-cell { border-left-color: var(--success-border); }
+tr.status-delivered .pill, tr.status-success .pill, .status-delivered .pill { background-color: var(--success-bg); color: var(--success-text); }
+
+/* Failed Styling */
+tr.status-failed .status-cell, .status-failed .status-cell { border-left-color: var(--failed-border); }
+tr.status-failed .pill, .status-failed .pill { background-color: var(--failed-bg); color: var(--failed-text); }
+
+/* Scheduled Styling */
+tr.status-scheduled .status-cell, .status-scheduled .status-cell { border-left-color: var(--scheduled-border); }
+tr.status-scheduled .pill, .status-scheduled .pill { background-color: var(--scheduled-bg); color: var(--scheduled-text); }
+
+/* Sent Styling */
+tr.status-sent .status-cell, .status-sent .status-cell { border-left-color: var(--sent-border); }
+tr.status-sent .pill, .status-sent .pill { background-color: var(--sent-bg); color: var(--sent-text); }
+
+/* New Styling */
+tr.status-new .status-cell, .status-new .status-cell { border-left-color: var(--new-border); }
+tr.status-new .pill, .status-new .pill { background-color: var(--new-bg); color: var(--new-text); }

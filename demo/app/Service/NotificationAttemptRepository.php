@@ -16,6 +16,7 @@ class NotificationAttemptRepository
     ) {
     }
 
+    /** @return NotificationAttempt|null */
     public function getById(int $id): ?NotificationAttempt
     {
         $row = $this->database->table('notification_attempt')->get($id);
@@ -61,7 +62,7 @@ class NotificationAttemptRepository
                 'gw_check_status' => $gwCheckStatus,
                 'gw_error_code' => $gwErrorCode,
                 'gw_send_date' => $gwSendDate,
-                'gw_delivery_date' => $gwDeliveryDate ? DateUtils::baToUtc($gwDeliveryDate) : $attempt->gwDeliveryDate,
+                'gw_delivery_date' => $gwDeliveryDate,
             ]);
 
         // Update the attempt object to reflect the changes
@@ -125,6 +126,18 @@ class NotificationAttemptRepository
         $rows = $this->database->table('notification_attempt')
             ->where('notification_msg_id', $msgId)
             ->order('attempt_no ASC')
+            ->fetchAll();
+
+        return self::toNotificationAttempts($rows, true);
+    }
+
+    /** @return NotificationAttempt[] */
+    public function listLatestByMsgId(int $msgId, int $limit): array
+    {
+        $rows = $this->database->table('notification_attempt')
+            ->where('notification_msg_id', $msgId)
+            ->order('attempt_no DESC')
+            ->limit($limit)
             ->fetchAll();
 
         return self::toNotificationAttempts($rows, true);

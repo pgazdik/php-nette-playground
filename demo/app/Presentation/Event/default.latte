@@ -14,6 +14,7 @@
             <th>Appointment</th>
             <th>Attachment</th>
             <th>Created</th>
+            <th>Action</th>
         </tr>
     </thead>
     <tbody>
@@ -27,6 +28,9 @@
                 <td>{$event->appointmentDate|date:'d.m.y H:i'}</td>
                 <td>{$event->attachmentName}</td>
                 <td>{$event->createdAt|date:'d.m.y H:i'}</td>
+                <td>
+                    <a n:href="show, id => $event->id" class="btn btn-check">Details</a>
+                </td>
             </tr>
         {/foreach}
     </tbody>

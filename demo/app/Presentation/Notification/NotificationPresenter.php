@@ -5,6 +5,7 @@ use App\Service\NotificationMsgRepository;
 use App\Service\EventManager;
 use App\Service\NotificationAttemptRepository;
 use App\Service\NotificationManager;
+use App\Utils\DateUtils;
 use App\Utils\DebuggerUtils;
 use Nette\Application\UI\Form;
 use Tracy\Debugger;
@@ -97,6 +98,11 @@ final class NotificationPresenter extends Nette\Application\UI\Presenter
             $container = $notificationsContainer->addContainer($notification->id);
             $container->addTextArea('text')
                 ->setDefaultValue($notification->text);
+            
+            $container->addText('sendAt')
+                ->setHtmlAttribute('type', 'datetime-local')
+                ->setDefaultValue($notification->sendAt->format('Y-m-d\TH:i'));
+
             $container->addSubmit('save', 'Save')
                 ->onClick[] = [$this, 'approveFormItemSucceeded'];
         }
@@ -108,8 +114,15 @@ final class NotificationPresenter extends Nette\Application\UI\Presenter
         $container = $button->getParent();
         $id = $container->getName();
         $text = $container['text']->getValue();
+        $sendAtStr = $container['sendAt']->getValue();
 
         $this->notificationMsgRepository->updateText((int) $id, $text);
+
+        if ($sendAtStr) {
+            $sendAt = DateUtils::newBaDate($sendAtStr);
+            $this->notificationMsgRepository->updateSendAt((int) $id, $sendAt);
+        }
+
         $this->flashMessage('Notification updated.', 'msg_success');
         $this->redirect('this');
     }

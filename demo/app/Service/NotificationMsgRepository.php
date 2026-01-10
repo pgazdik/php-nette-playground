@@ -84,6 +84,13 @@ class NotificationMsgRepository
             ->update(['text' => $text]);
     }
 
+    public function updateSendAt(int $id, \DateTime $sendAt): void
+    {
+        $this->database->table('notification_msg')
+            ->where('id', $id)
+            ->update(['send_at' => DateUtils::baToUtc($sendAt)]);
+    }
+
     public function updateStatus(int $id, NotificationMsgStatus $status): void
     {
         $this->database->table('notification_msg')
@@ -138,6 +145,17 @@ class NotificationMsgRepository
             ->fetch();
 
         return $row ? self::toNotificationMsg($row) : null;
+    }
+
+    /** @return NotificationMsg[] */
+    public function getAllByEventId(int $eventId): array
+    {
+        $rows = $this->database->table('notification_msg')
+            ->where('event_id', $eventId)
+            ->order('msg_index ASC')
+            ->fetchAll();
+
+        return self::rowsToNotificationMsgs($rows);
     }
 
 
