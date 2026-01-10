@@ -3,6 +3,8 @@ namespace App\Presentation\Notification;
 
 use App\Service\NotificationMsgRepository;
 use App\Service\EventManager;
+use App\Service\NotificationAttemptRepository;
+use App\Service\NotificationManager;
 use App\Utils\DebuggerUtils;
 use Nette\Application\UI\Form;
 use Tracy\Debugger;
@@ -21,7 +23,9 @@ final class NotificationPresenter extends Nette\Application\UI\Presenter
 
     public function __construct(
         private NotificationMsgRepository $notificationMsgRepository,
-        private EventManager $eventManager
+        private EventManager $eventManager,
+        private NotificationAttemptRepository $notificationAttemptRepository,
+        private NotificationManager $notificationManager
     ) {
     }
 
@@ -136,9 +140,30 @@ final class NotificationPresenter extends Nette\Application\UI\Presenter
         $this->page = max(1, min($this->page, $lastPage));
         $offset = ($this->page - 1) * self::PAGE_SIZE;
 
-        $this->template->notifications = $this->notificationMsgRepository->getScheduled(self::PAGE_SIZE, $offset);
+        $notifications = $this->notificationMsgRepository->getScheduled(self::PAGE_SIZE, $offset);
+        $this->template->notifications = $notifications;
+
+        $msgIds = array_map(fn($n): int => $n->id, $notifications);
+        $this->template->scheduledAttempts = $this->notificationAttemptRepository->getScheduledAttemptsMap($msgIds);
+
         $this->template->page = $this->page;
         $this->template->lastPage = $lastPage;
+    }
+
+    public function handleSend(int $attemptId): void
+    {
+        try {
+            $error = $this->notificationManager->forceSend($attemptId);
+            if ($error)
+                $this->flashMessage($error, 'msg_error');
+            else
+                $this->flashMessage('Notification sending triggered.', 'msg_success');
+
+        } catch (Exception $e) {
+            DebuggerUtils::logException($e, "Failed to send attempt #{$attemptId}");
+            $this->flashMessage('Failed to trigger sending: ' . $e->getMessage(), 'msg_error');
+        }
+        $this->redirect('this');
     }
 
 

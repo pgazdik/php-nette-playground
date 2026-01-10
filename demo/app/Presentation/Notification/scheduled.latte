@@ -12,6 +12,7 @@
             <th>Text</th>
             <th>Send At</th>
             <th>Created</th>
+            <th>Action</th>
         </tr>
     </thead>
     <tbody>
@@ -25,6 +26,13 @@
                 <td>{$notification->text|truncate:50}</td>
                 <td>{$notification->sendAt|date:'d.m.y H:i'}</td>
                 <td>{$notification->createdAt|date:'d.m.y H:i'}</td>
+                <td>
+                    {if isset($scheduledAttempts[$notification->id])}
+                        <a n:href="send! attemptId => $scheduledAttempts[$notification->id]" class="btn-send">Send</a>
+                    {else}
+                        <span class="text-muted">-</span>
+                    {/if}
+                </td>
             </tr>
         {/foreach}
     </tbody>
@@ -80,5 +88,9 @@
         color: white;
         text-decoration: none;
         border-radius: 3px;
+    }
+    
+    .text-muted {
+        color: #6c757d;
     }
 </style>

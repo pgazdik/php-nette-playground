@@ -95,6 +95,27 @@ class NotificationAttemptRepository
         return self::toNotificationAttempts($rows, true);
     }
 
+    public function getById(int $id): ?NotificationAttempt
+    {
+        $row = $this->database->table('notification_attempt')->get($id);
+        return $row ? self::toNotificationAttempt($row, true) : null;
+    }
+
+    public function getScheduledAttemptsMap(array $msgIds): array
+    {
+        $rows = $this->database->table('notification_attempt')
+            ->where('notification_msg_id', $msgIds)
+            ->where('status', NotificationAttemptStatus::Scheduled->value)
+            ->fetchAll();
+
+        $map = [];
+        foreach ($rows as $row) {
+            // We just need one scheduled attempt per message (usually there is only one active)
+            $map[$row->notification_msg_id] = $row->id;
+        }
+        return $map;
+    }
+
     /** @return NotificationAttempt[] */
     public function listByMsgId(int $msgId): array
     {

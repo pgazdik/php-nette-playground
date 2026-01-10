@@ -40,6 +40,19 @@ class NotificationManager
         }
     }
 
+    public function forceSend(int $attemptId): ?string
+    {
+        $attempt = $this->notificationAttemptRepository->getById($attemptId);
+        if (!$attempt)
+            return "Cannot send message, corresponding Attempt($attemptId) not found!";
+
+        if ($attempt->status !== NotificationAttemptStatus::Scheduled)
+            return "Cannot send message,  seems it was sent already?";
+
+        $this->sendNotification($attempt);
+        return null;
+    }
+
     private function sendNotification(NotificationAttempt $attempt): void
     {
         Debugger::log("Sending notification, attempt id: {$attempt->id}", "info");
