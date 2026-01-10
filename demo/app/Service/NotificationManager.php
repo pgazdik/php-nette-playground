@@ -6,6 +6,7 @@ use App\Model\Entity\Event\MediaType;
 use App\Model\Entity\Event\NotificationAttempt;
 use App\Model\Entity\Event\NotificationAttemptStatus;
 use App\Model\Entity\Event\NotificationMsg;
+use App\Model\Entity\Event\NotificationMsgStatus;
 use Nette\Database\Explorer;
 use Tracy\Debugger;
 
@@ -47,7 +48,7 @@ class NotificationManager
             return "Cannot send message, corresponding Attempt($attemptId) not found!";
 
         if ($attempt->status !== NotificationAttemptStatus::Scheduled)
-            return "Cannot send message,  seems it was sent already?";
+            return "Cannot send message, seems it was sent already?";
 
         $this->sendNotification($attempt);
         return null;
@@ -82,7 +83,7 @@ class NotificationManager
 
         if (!$result->isSuccess) {
             // sending error
-            $this->notificationAttemptRepository->noteMessageSendErrorAndReschedule($attempt, $result->error);
+            $this->notificationAttemptRepository->noteMessageSendError($attempt, $result->error);
             $this->scheduleNextAttempt($attempt);
 
             return;
@@ -126,20 +127,33 @@ class NotificationManager
             return; // No more messages to send
         }
         foreach ($msgAttempts as $attempt) {
-            $this->checkNotification($attempt);
+            $this->checkNotificationStatus($attempt);
         }
     }
 
-    private function checkNotification(NotificationAttempt $attempt)
+    public function forceCheckStatus(int $attemptId): ?string
+    {
+        $attempt = $this->notificationAttemptRepository->getById($attemptId);
+        if (!$attempt) 
+            return "Cannot check message, corresponding Attempt($attemptId) not found!";
+        
+        if ($attempt->status !== NotificationAttemptStatus::Sent) 
+            return "Cannot send message, status is not 'Sent', but: " . $attempt->status->value;   
+
+        $this->checkNotificationStatus($attempt);
+        return null;
+    }
+
+    private function checkNotificationStatus(NotificationAttempt $attempt)
     {
         Debugger::log("Checking notification, attempt id: {$attempt->id}", "info");
 
         $gwId = $attempt->gwId;
 
-        $result = $this->smsGwService->requestToSmsGateway('sent?id_from=' . $gwId . '&id_to=' . $gwId, null);
+        $result = $this->smsGwService->requestToSmsGateway("sent?id_from={$gwId}&id_to={$gwId}", null);
         if (!$result->isSuccess) {
             // TODO think later how to handle these errors
-            Debugger::log('MMS check failed! Error: ' . $result->error, Debugger::ERROR);
+            Debugger::log("MMS check failed for attempt id {$attempt->id}, error: {$result->error}", Debugger::ERROR);
             return;
         }
 
@@ -149,11 +163,11 @@ class NotificationManager
         if (!is_array($response)) {
             if (property_exists($response, 'message') && str_contains($response->message, 'not found')) {
                 // TODO think later how to handle these errors
-                Debugger::log('MMS not found yet, try again later!;', Debugger::INFO);
+                Debugger::log("MMS with id {$gwId} not found yet, try again later! Attempt id: {$attempt->id}", Debugger::INFO);
 
             } else {
                 // TODO think later how to handle these errors
-                $msg = "Unexpected response: " . json_encode($response);
+                $msg = "Unexpected response for attempt id {$attempt->id}: " . json_encode($response);
                 Debugger::log($msg, Debugger::ERROR);
             }
             return;
@@ -161,7 +175,7 @@ class NotificationManager
 
         if (sizeof($response) !== 1) {
             // TODO think later how to handle these errors
-            Debugger::log("Wrong number of responses: " . json_encode($response), Debugger::ERROR);
+            Debugger::log("Wrong number of responses for attempt id {$attempt->id}: " . json_encode($response), Debugger::ERROR);
             return;
         }
 
@@ -181,11 +195,11 @@ class NotificationManager
         );
 
         if ($delivered) {
+            $this->notificationMsgRepository->updateStatus($attempt->notificationMsgId, NotificationMsgStatus::Delivered);
             $this->scheduleAttemptForNextMessage($attempt);
         } else {
-            // $this->scheduleNextAttempt($attempt);
+            $this->scheduleNextAttempt($attempt);
         }
-
     }
 
     private function scheduleNextAttempt(NotificationAttempt $attempt): void

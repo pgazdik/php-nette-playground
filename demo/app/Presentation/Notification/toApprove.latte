@@ -2,7 +2,7 @@
 <h1>To Approve</h1>
 
 {form approveForm}
-<table class="events-table">
+<table class="data-table">
     <thead>
         <tr>
             <th>ID</th>
@@ -85,91 +85,3 @@ function toggleEdit(id) {
 }
 </script>
 
-<style>
-    .events-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 20px 0;
-        background: white;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-
-    .events-table th,
-    .events-table td {
-        padding: 12px 15px;
-        text-align: left;
-        border-bottom: 1px solid #e0e0e0;
-    }
-
-    .events-table th {
-        background-color: #f5f5f5;
-        font-weight: bold;
-    }
-
-    .events-table tr:hover {
-        background-color: #f9f9f9;
-    }
-    
-    .edit-textarea {
-        width: 100%;
-        box-sizing: border-box;
-        padding: 5px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        font-family: inherit;
-    }
-    
-    .pagination {
-        margin-top: 20px;
-        text-align: center;
-    }
-    
-    .pagination a {
-        display: inline-block;
-        padding: 5px 10px;
-        margin: 0 5px;
-        background: #007bff;
-        color: white;
-        text-decoration: none;
-        border-radius: 3px;
-    }
-
-    /* Button Styles */
-    .btn {
-        padding: 8px 15px;
-        border: none;
-        border-radius: 4px;
-        color: white;
-        cursor: pointer;
-        font-weight: bold;
-        text-decoration: none;
-        display: inline-block;
-        font-family: Arial, sans-serif;
-        font-size: 13.33px; /* Match default button font size */
-        margin-right: 5px;
-    }
-
-    .btn-save {
-        background-color: #00008B; /* Dark Blue matching navbar */
-    }
-
-    .btn-save:hover {
-        background-color: #000060;
-    }
-    
-    .btn-approve {
-        background-color: #28a745; /* Green */
-    }
-
-    .btn-approve:hover {
-        background-color: #218838;
-    }
-
-    .btn-cancel {
-        background-color: #555; /* Dark Grey */
-    }
-
-    .btn-cancel:hover {
-        background-color: #333;
-    }
-</style>

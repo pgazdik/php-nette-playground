@@ -44,10 +44,15 @@ class NotificationAttempt
 
     public static function createNextAttempt(NotificationAttempt $previousAttempt): NotificationAttempt
     {
+        // If we try to send a notification manually before it would be sent automatically, and it fails, 
+        // we do not want to delay the next attempt but keep the original time
+        $needsDelay = $previousAttempt->sendAt <= new DateTime();
+        $newSendAt = $needsDelay ? self::computeDelay($previousAttempt) : $previousAttempt->sendAt;
+
         return new NotificationAttempt(
             notificationMsgId: $previousAttempt->notificationMsgId,
             attemptNo: $previousAttempt->attemptNo + 1,
-            sendAt: DateUtils::baToUtc(self::computeDelay($previousAttempt)),
+            sendAt: DateUtils::baToUtc($newSendAt),
             status: NotificationAttemptStatus::Scheduled,
             msg: $previousAttempt->msg,
         );

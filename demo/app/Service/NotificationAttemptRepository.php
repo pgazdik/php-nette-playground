@@ -16,6 +16,12 @@ class NotificationAttemptRepository
     ) {
     }
 
+    public function getById(int $id): ?NotificationAttempt
+    {
+        $row = $this->database->table('notification_attempt')->get($id);
+        return $row ? self::toNotificationAttempt($row, true) : null;
+    }
+
     //
     // Create
     //
@@ -95,23 +101,20 @@ class NotificationAttemptRepository
         return self::toNotificationAttempts($rows, true);
     }
 
-    public function getById(int $id): ?NotificationAttempt
-    {
-        $row = $this->database->table('notification_attempt')->get($id);
-        return $row ? self::toNotificationAttempt($row, true) : null;
-    }
-
-    public function getScheduledAttemptsMap(array $msgIds): array
+    /** @return array<int, NotificationAttempt> [msgId => Attempt] */
+    public function getActiveAttemptsMap(array $msgIds): array
     {
         $rows = $this->database->table('notification_attempt')
             ->where('notification_msg_id', $msgIds)
-            ->where('status', NotificationAttemptStatus::Scheduled->value)
+            ->where('status IN ?', [NotificationAttemptStatus::Scheduled->value, NotificationAttemptStatus::Sent->value])
+            ->order('id DESC')
             ->fetchAll();
 
         $map = [];
         foreach ($rows as $row) {
-            // We just need one scheduled attempt per message (usually there is only one active)
-            $map[$row->notification_msg_id] = $row->id;
+            if (!isset($map[$row->notification_msg_id])) {
+                $map[$row->notification_msg_id] = self::toNotificationAttempt($row, false);
+            }
         }
         return $map;
     }
@@ -179,7 +182,7 @@ class NotificationAttemptRepository
         $attempt->gwSendStatus = $gwStatus;
     }
 
-    public function noteMessageSendErrorAndReschedule(NotificationAttempt $attempt, string $error): void
+    public function noteMessageSendError(NotificationAttempt $attempt, string $error): void
     {
         $this->database->table('notification_attempt')
             ->where('id', $attempt->id)

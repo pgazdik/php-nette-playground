@@ -142,9 +142,9 @@ final class NotificationPresenter extends Nette\Application\UI\Presenter
 
         $notifications = $this->notificationMsgRepository->getScheduled(self::PAGE_SIZE, $offset);
         $this->template->notifications = $notifications;
-
-        $msgIds = array_map(fn($n): int => $n->id, $notifications);
-        $this->template->scheduledAttempts = $this->notificationAttemptRepository->getScheduledAttemptsMap($msgIds);
+        
+        $msgIds = array_map(fn($n) => $n->id, $notifications);
+        $this->template->activeAttempts = $this->notificationAttemptRepository->getActiveAttemptsMap($msgIds);
 
         $this->template->page = $this->page;
         $this->template->lastPage = $lastPage;
@@ -162,6 +162,18 @@ final class NotificationPresenter extends Nette\Application\UI\Presenter
         } catch (Exception $e) {
             DebuggerUtils::logException($e, "Failed to send attempt #{$attemptId}");
             $this->flashMessage('Failed to trigger sending: ' . $e->getMessage(), 'msg_error');
+        }
+        $this->redirect('this');
+    }
+
+    public function handleCheckStatus(int $attemptId): void
+    {
+        try {
+            $this->notificationManager->forceCheckStatus($attemptId);
+            $this->flashMessage('Notification status check triggered.', 'msg_success');
+        } catch (Exception $e) {
+            DebuggerUtils::logException($e, "Failed to check status for attempt #{$attemptId}");
+            $this->flashMessage('Failed to trigger status check: ' . $e->getMessage(), 'msg_error');
         }
         $this->redirect('this');
     }

@@ -84,6 +84,13 @@ class NotificationMsgRepository
             ->update(['text' => $text]);
     }
 
+    public function updateStatus(int $id, NotificationMsgStatus $status): void
+    {
+        $this->database->table('notification_msg')
+            ->where('id', $id)
+            ->update(['status' => $status->value]);
+    }
+
     public function getById(int $id): ?NotificationMsg
     {
         $row = $this->database->table('notification_msg')->get($id);

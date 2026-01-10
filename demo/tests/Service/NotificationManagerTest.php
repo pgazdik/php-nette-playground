@@ -77,10 +77,10 @@ class NotificationManagerTest extends EventDbTestCase
         $this->assertEquals(1, $mockCallCount, "SMS Gateway should have been called once");
 
         // Verify Attempt Status updated to Sent
-        $updatedAttempt = $this->fetchAttempt($attempt->id);
-        $this->assertEquals(NotificationAttemptStatus::Sent->value, $updatedAttempt->status);
-        $this->assertEquals(12345, $updatedAttempt->gw_id);
-        $this->assertEquals('queued', $updatedAttempt->gw_send_status);
+        $updatedAttempt = $this->notificationAttemptRepository->getById($attempt->id);
+        $this->assertEquals(NotificationAttemptStatus::Sent, $updatedAttempt->status);
+        $this->assertEquals(12345, $updatedAttempt->gwId);
+        $this->assertEquals('queued', $updatedAttempt->gwSendStatus);
     }
 
     public function testSendEligibleNotificationsFailureReschedules()
@@ -128,7 +128,7 @@ class NotificationManagerTest extends EventDbTestCase
     public function testCheckStatusOfSentNotifications_SchedulesNextMessage()
     {
         $GW_ID = 12345;
-        $hourAgo  = new DateTime('-1 hour');
+        $hourAgo = new DateTime('-1 hour');
 
         // 1. Prepare Data
         $event = $this->createTestEvent('Patient Check', new DateTime('+2 days'));
@@ -176,9 +176,13 @@ class NotificationManagerTest extends EventDbTestCase
         $this->assertTrue($mockCalled, "Mock check should have been called");
 
         // Verify Attempt 1 is Delivered
-        $updatedAttempt1 = $this->fetchAttempt($attempt1->id);
-        $this->assertEquals(NotificationAttemptStatus::Delivered->value, $updatedAttempt1->status);
-        $this->assertNotNull($updatedAttempt1->gw_delivery_date);
+        $updatedAttempt1 = $this->notificationAttemptRepository->getById($attempt1->id);
+        $this->assertEquals(NotificationAttemptStatus::Delivered, $updatedAttempt1->status);
+        $this->assertNotNull($updatedAttempt1->gwDeliveryDate);
+
+        // Verify Message 1 is Delivered
+        $updatedMsg1 = $this->notificationMsgRepository->getById($msg1->id);
+        $this->assertEquals(NotificationMsgStatus::Delivered, $updatedMsg1->status);
 
         // Verify Attempt for Msg 2 is Created (Scheduled)
         $attempts2 = $this->notificationAttemptRepository->listByMsgId($msg2->id);
@@ -190,7 +194,7 @@ class NotificationManagerTest extends EventDbTestCase
     public function testCheckStatusOfSentNotifications_FailureReschedulesAttempt()
     {
         $GW_ID = 12345;
-        $hourAgo  = new DateTime('-1 hour');
+        $hourAgo = new DateTime('-1 hour');
 
         // 1. Prepare Data
         $event = $this->createTestEvent('Patient Check', new DateTime('+2 days'));
@@ -216,31 +220,33 @@ class NotificationManagerTest extends EventDbTestCase
             $this->assertStringContainsString("id_from=$GW_ID", $urlPath);
 
             // Return 'sending_error' response
-            return Maybe::success([(object)[
-                'status' => 'sending_error',
-                'error_code' => null,
-                'sending_date' => '2023-01-01 10:00:00',
-                'delivery_date' => null,
-            ]]);
+            return Maybe::success([
+                (object) [
+                    'status' => 'sending_error',
+                    'error_code' => 500,
+                    'sending_date' => '2023-01-01 10:00:00',
+                    'delivery_date' => null,
+                ]
+            ]);
         };
 
         // 3. Execute
         $this->notificationManager->checkStatusOfSentNotifications();
 
         // 4. Verify
-        // $this->assertTrue($mockCalled, "Mock check should have been called");
+        $this->assertTrue($mockCalled, "Mock check should have been called");
 
         // // Verify Attempts
-        // $attempts = $this->notificationAttemptRepository->listByMsgId($msg1->id);
-        // $this->assertCount(2, $attempts, "Should have 2 attempts now (1 failed, 1 rescheduled)");
+        $attempts = $this->notificationAttemptRepository->listByMsgId($msg1->id);
+        $this->assertCount(2, $attempts, "Should have 2 attempts now (1 failed, 1 rescheduled)");
 
-        // $failedAttempt = $attempts[0];
-        // $this->assertEquals(NotificationAttemptStatus::Failed, $failedAttempt->status);
-        // $this->assertEquals(500, $failedAttempt->gwErrorCode);
+        $failedAttempt = $attempts[0];
+        $this->assertEquals(NotificationAttemptStatus::Failed, $failedAttempt->status);
+        $this->assertEquals(500, $failedAttempt->gwErrorCode);
 
-        // $nextAttempt = $attempts[1];
-        // $this->assertEquals(2, $nextAttempt->attemptNo);
-        // $this->assertEquals(NotificationAttemptStatus::Scheduled, $nextAttempt->status);
+        $nextAttempt = $attempts[1];
+        $this->assertEquals(2, $nextAttempt->attemptNo);
+        $this->assertEquals(NotificationAttemptStatus::Scheduled, $nextAttempt->status);
     }
 
     //
@@ -254,11 +260,4 @@ class NotificationManagerTest extends EventDbTestCase
             $msg = 'Time difference should be max ' . $maxDiffSeconds . ' seconds';
         $this->assertLessThanOrEqual($maxDiffSeconds, $diffInSeconds, $msg);
     }
-
-    private function fetchAttempt(int $id)
-    {
-        return $this->database->table('notification_attempt')->get($id);
-    }
-
-
 }
