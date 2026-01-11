@@ -3,10 +3,14 @@ extensions:
 
 orisai.scheduler:
 	jobs:
+		# -
+		# 	expression: "* * * * *"  # Cron expression for every minute
+		# 	#expression: "0 * * * *"  # Cron expression for every hour
+		# 	callback: [@task.test, 'run']
 		-
 			expression: "* * * * *"  # Cron expression for every minute
-			#expression: "0 * * * *"  # Cron expression for every hour
-			callback: [@my.task1, 'run']
+			callback: [@task.notifications, 'run']
 
 services:
-	my.task1: Task\MyJobService1
+	task.test: Task\MyJobService1
+	task.notifications: Task\NotificationManagingTask

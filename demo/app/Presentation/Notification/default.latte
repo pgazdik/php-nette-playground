@@ -1,0 +1,43 @@
+{block content}
+<h1>Notifications</h1>
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Event ID</th>
+            <th>Type</th>
+            <th>Media</th>
+            <th>Status</th>
+            <th>Text</th>
+            <th>Send At</th>
+            <th>Created</th>
+        </tr>
+    </thead>
+    <tbody>
+        {foreach $notifications as $notification}
+            <tr n:class="'status-' . $notification->status->toColor()->value">
+                <td class="status-cell">{$notification->id}</td>
+                <td><a n:href="Event:show, id => $notification->eventId">{$notification->eventId}</a></td>
+                <td>{$notification->notificationType->value}</td>
+                <td>{$notification->mediaType->value}</td>
+                <td><span class="pill">{$notification->status->value}</span></td>
+                <td title="{$notification->text}">{$notification->text|truncate:50}</td>
+                <td>{$notification->scheduledAt|date:'d.m.y H:i'}</td>
+                <td>{$notification->createdAt|date:'d.m.y H:i'}</td>
+            </tr>
+        {/foreach}
+    </tbody>
+</table>
+
+<div class="pagination">
+    {if $page > 1}
+        <a n:href="default, page => $page - 1">Previous</a>
+    {/if}
+
+    <span>Page {$page} of {$lastPage}</span>
+
+    {if $page < $lastPage}
+        <a n:href="default, page => $page + 1">Next</a>
+    {/if}
+</div>

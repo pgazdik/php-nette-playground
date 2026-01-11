@@ -100,9 +100,9 @@
                     <td>{$message->gw_error_code}</td>
                     <td>
                         {if $message->status === 'new'}
-                            <a href="{link send! $message->id}" class="btn btn-send">Send</a>
+                            <a href="{link send! $message->id}" class="btn btn-important">Send</a>
                         {elseif $message->status === 'sent'}
-                            <a href="{link check! $message->id}" class="btn btn-check">Check</a>
+                            <a href="{link check! $message->id}" class="btn btn-normal">Check</a>
                         {/if}
                     </td>
                     <td>
@@ -150,21 +150,21 @@
             transition: background-color 0.2s;
         }
         
-        .btn-send {
+        .btn-important {
             background-color: #4CAF50;
             color: white;
         }
         
-        .btn-send:hover {
+        .btn-important:hover {
             background-color: #45a049;
         }
         
-        .btn-check {
+        .btn-normal {
             background-color: #2196F3;
             color: white;
         }
         
-        .btn-check:hover {
+        .btn-normal:hover {
             background-color: #0b7dda;
         }
 

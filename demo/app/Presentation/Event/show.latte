@@ -1,0 +1,94 @@
+{block content}
+<h1>Event #{$event->id}</h1>
+
+<div class="event-details">
+    <p><strong>Patient:</strong> {$event->patientName}</p>
+    <p><strong>Phone:</strong> {$event->phoneNumber}</p>
+    <p><strong>Date:</strong> {$event->appointmentDate|date:'d.m.y'}</p>
+    <p><strong>Time:</strong> {$event->appointmentDate|date:'H:i'}</p>
+    <p><strong>Doctor Name:</strong> {$event->doctorName}</p>
+    <p><strong>Doctor Address:</strong> {$event->doctorAddress}</p>
+</div>
+
+<h2>Notifications</h2>
+
+{if count($notifications) === 0}
+    <p>No notifications found for this event.</p>
+{else}
+    {foreach $notifications as $msg}
+        <div n:class="notification-block, 'status-' . $msg->status->toColor()->value">
+            <h3 class="status-cell" style="padding-left: 10px;">#{$msg->id} - <span class="pill">{$msg->status->value}</span></h3>
+            {if $msg->text}
+                <p><strong>Text:</strong> {$msg->text}</p>
+            {else}
+                <p>
+                {if $event->attachmentContent}
+                    <img src="data:{$event->attachmentType|noescape};base64,{base64_encode($event->attachmentContent)|noescape}" style="max-width: 300px; border: 1px solid #ccc;">
+                {else}
+                    <span class="text-muted">No image content available.</span>
+                {/if}
+                </p>
+            {/if}
+            <p><strong>Scheduled:</strong> {$msg->scheduledAt|date:'d.m.y H:i'}</p>
+
+            {if $attempts[$msg->id]}
+                <table class="data-table nomargin">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Status</th>
+                            <th>Scheduled</th>
+                            <th>Sent</th>
+                            <th>GW ID</th>
+                            <th>GW Send</th>
+                            <th>GW Check</th>
+                            <th>GW Send</th>
+                            <th>GW Delivery</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {foreach $attempts[$msg->id] as $attempt}
+                            <tr n:class="'status-' . $attempt->status->toColor()->value, $attempt->sendingError || $attempt->checkError ? 'error-follows'">
+                                <td class="status-cell">{$attempt->attemptNo}</td>
+                                <td><span class="pill">{$attempt->status->value}</span></td>
+                                <td>{$attempt->scheduledAt|date:'d.m.y H:i'}</td>
+                                <td>{$attempt->sentAt|date:'d.m.y H:i'}</td>
+                                <td>{$attempt->gwId}</td>
+                                <td>{$attempt->gwSendStatus}</td>
+                                <td>{$attempt->gwCheckStatus}</td>
+                                <td>{if $attempt->gwSendDate}{$attempt->gwSendDate|date:'d.m.y H:i:s'}{else}-{/if}</td>
+                                <td>{if $attempt->gwDeliveryDate}{$attempt->gwDeliveryDate|date:'d.m.y H:i:s'}{else}-{/if}</td>
+                            </tr>
+                            {if $attempt->sendingError}
+                            <tr n:class="'status-' . $attempt->status->toColor()->value">
+                                <td class="status-cell" ></td>
+                                <td colspan="99"><strong>Sending Error:</strong>{$attempt->sendingError}</td>
+                            </tr>
+                            {elseif $attempt->checkError}
+                            <tr n:class="'status-' . $attempt->status->toColor()->value">
+                                <td class="status-cell" ></td>
+                                <td colspan="99"><strong>Check Error:</strong>{$attempt->checkError}</td>
+                            </tr>
+                            {/if}
+                        {/foreach}
+                    </tbody>
+                </table>
+            {/if}
+        </div>
+        <hr>
+    {/foreach}
+{/if}
+
+<a n:href="default" class="btn btn-cancel">Back to List</a>
+
+<style>
+    .event-details p {
+        margin: 5px 0;
+    }
+    .notification-block {
+        margin-top: 0;
+        padding: 10px;
+        background-color: #f9f9f9;
+        border: 1px solid #eee;
+    }
+</style>

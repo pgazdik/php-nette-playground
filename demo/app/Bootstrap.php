@@ -48,10 +48,10 @@ class Bootstrap
 		// Special doc for services:       https://doc.nette.org/en/dependency-injection/services
 
 		$configDir = $this->rootDir . '/config';
-		$this->configurator->addConfig($configDir . '/common.neon');
-		$this->configurator->addConfig($configDir . '/scheduler.neon');
-		$this->configurator->addConfig($configDir . '/migrations.neon');
-		$this->configurator->addConfig($configDir . '/db-prod.neon');
-		$this->configurator->addConfig($configDir . '/services.neon');
+		$this->configurator->addConfig("$configDir/common.neon");
+		$this->configurator->addConfig("$configDir/scheduler.neon");
+		$this->configurator->addConfig("$configDir/migrations.neon");
+		$this->configurator->addConfig("$configDir/db-prod.neon");
+		$this->configurator->addConfig("$configDir/services.neon");
 	}
 }

@@ -1,7 +1,10 @@
 #!/usr/bin/env php
 <?php
 declare(strict_types=1);
-file_put_contents(__DIR__ . '/../log/console-args.log', date('Y-m-d H:i:s') . ' | Args: ' . implode(' ', $argv) . PHP_EOL, FILE_APPEND | LOCK_EX);
+
+# Uncomment to log console args
+#file_put_contents(__DIR__ . '/../log/console-args.log', date('Y-m-d H:i:s') . ' | Args: ' . implode(' ', $argv) . PHP_EOL, FILE_APPEND | LOCK_EX);
+
 # This is called by the Scheduler referenced in 'scheduler.php'
 
 require __DIR__ . '/../vendor/autoload.php';

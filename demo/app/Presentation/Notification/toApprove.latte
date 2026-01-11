@@ -1,0 +1,98 @@
+{block content}
+<h1>To Approve</h1>
+
+{form approveForm}
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Event ID</th>
+            <th>Type</th>
+            <th>Media</th>
+            <th>Status</th>
+            <th>Text</th>
+            <th>Send At</th>
+            <th>Created</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {foreach $notifications as $notification}
+            {var $container = $form['notifications'][$notification->id]}
+            <tr n:class="'status-' . $notification->status->toColor()->value">
+                <td class="status-cell">{$notification->id}</td>
+                <td><a n:href="Event:show, id => $notification->eventId">{$notification->eventId}</a></td>
+                <td>{$notification->notificationType->value}</td>
+                <td>{$notification->mediaType->value}</td>
+                <td><span class="pill">{$notification->status->value}</span></td>
+                <td>
+                    <span id="text-view-{$notification->id}">{$notification->text}</span>
+                    <div id="text-edit-{$notification->id}" style="display:none;">
+                        {input $container['text'], class => 'edit-textarea'}
+                    </div>
+                </td>
+                <td>
+                    <span id="scheduledAt-view-{$notification->id}">{$notification->scheduledAt|date:'d.m.y H:i'}</span>
+                    <div id="scheduledAt-edit-{$notification->id}" style="display:none;">
+                        {input $container['scheduledAt'], class => 'edit-textarea'}
+                    </div>
+                </td>
+                <td>{$notification->createdAt|date:'d.m.y H:i'}</td>
+                <td>
+                    <button type="button" id="btn-edit-{$notification->id}" onclick="toggleEdit({$notification->id})" class="btn btn-normal">Edit</button>
+                    <a n:href="approve! id => $notification->id" id="btn-important-{$notification->id}" class="btn btn-important">Approve</a>
+                    <div id="action-group-{$notification->id}" style="display:none;">
+                        {input $container['save'], class => 'btn btn-normal'}
+                        <button type="button" class="btn btn-cancel" onclick="toggleEdit({$notification->id})">Cancel</button>
+                    </div>
+                </td>
+            </tr>
+        {/foreach}
+    </tbody>
+</table>
+{/form}
+
+<div class="pagination">
+    {if $page > 1}
+        <a n:href="toAprove, page => $page - 1">Previous</a>
+    {/if}
+
+    <span>Page {$page} of {$lastPage}</span>
+
+    {if $page < $lastPage}
+        <a n:href="toAprove, page => $page + 1">Next</a>
+    {/if}
+</div>
+
+<script>
+function toggleEdit(id) {
+    var view = document.getElementById('text-view-' + id);
+    var edit = document.getElementById('text-edit-' + id);
+    var viewscheduledAt = document.getElementById('scheduledAt-view-' + id);
+    var editscheduledAt = document.getElementById('scheduledAt-edit-' + id);
+    var btnEdit = document.getElementById('btn-edit-' + id);
+    var btnApprove = document.getElementById('btn-important-' + id);
+    var actionGroup = document.getElementById('action-group-' + id);
+
+    if (view.style.display === 'none') {
+        // Cancel edit / Show view
+        view.style.display = 'block';
+        edit.style.display = 'none';
+        viewscheduledAt.style.display = 'block';
+        editscheduledAt.style.display = 'none';
+        btnEdit.style.display = 'inline-block';
+        btnApprove.style.display = 'inline-block';
+        actionGroup.style.display = 'none';
+    } else {
+        // Enable edit
+        view.style.display = 'none';
+        edit.style.display = 'block';
+        viewscheduledAt.style.display = 'none';
+        editscheduledAt.style.display = 'block';
+        btnEdit.style.display = 'none';
+        btnApprove.style.display = 'none';
+        actionGroup.style.display = 'block'; // Show div containing Save and Cancel
+    }
+}
+</script>
+

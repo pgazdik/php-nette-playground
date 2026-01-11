@@ -24,11 +24,15 @@ abstract class DbTestCase extends TestCase
 
     protected function tearDown(): void
     {
-        // Restore handlers to fix warnings
-        restore_error_handler();
-        restore_exception_handler();
+        // Restore handlers to fix warnings - for some tests this doesn't work properly when we call enableTracy in TestBootstrap, so we did it differently.
+        // Still, would be good to know why it only happens for some tests
+
+        // restore_error_handler();
+        // restore_exception_handler();
+
+        parent::tearDown();
     }
- 
+
     protected function logInfo($message)
     {
         Debugger::log($message);

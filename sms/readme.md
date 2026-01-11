@@ -27,14 +27,13 @@ Start the containers (in attached mode, i.e. stopping via Ctrl+C):
 ```bash
 docker compose up
 ```
-(No desire to go through start/stop/up/down differences now).
 
 Open a new cmd/shell and again navigate to the root:
 ```bash
 cd php-nette-playground
 ```
 
-Install dependencies:
+Install dependencies (PHP libraries):
 ```bash
 docker compose exec -w /application/demo php-fpm composer install
 ```
@@ -57,12 +56,13 @@ Use the `composer fund` command to find out more!
 Verify Installation:
 Check that there is a new folder `./demo/vendor`, with a content like this:
 ```
-bin/
-composer/
-dibi/
-...
-trac/
-autoload.php
+demo/vendor/
+├── bin/
+├── composer/
+├── dibi/
+├── ...
+├── trac/
+└── autoload.php
 ```
 
 
@@ -95,10 +95,7 @@ Wait (hopefully only) a few seconds:\
 Check the status with the blue `Check` button. \
 If it works, it updates the `Check St`, `Send Date` and other columns on the right side.
 
-WARNING: First few seconds after pressing `Send`, it's still not sent to the phone by the Gateway, so you'might see an error as a result of checking (for now, will be supported later).
-
 That's it.
-
 
 ----
 
