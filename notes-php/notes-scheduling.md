@@ -111,5 +111,9 @@ command: >
     service cron start
 ```
 
+### Run Manually
 
+```bash
+docker compose exec -w //application/demo php-fpm php bin/scheduler.php
+```
 
