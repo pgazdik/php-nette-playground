@@ -3,13 +3,11 @@ namespace App\Presentation\Notification;
 
 use App\Presentation\BaseEventPresenter;
 use App\Service\NotificationMsgRepository;
-use App\Service\EventManager;
 use App\Service\NotificationAttemptRepository;
 use App\Service\NotificationManager;
 use App\Utils\DateUtils;
 use App\Utils\DebuggerUtils;
 use Nette\Application\UI\Form;
-use Tracy\Debugger;
 
 use Exception;
 use Nette;
@@ -25,7 +23,6 @@ class NotificationPresenter extends BaseEventPresenter
 
     public function __construct(
         private NotificationMsgRepository $notificationMsgRepository,
-        private EventManager $eventManager,
         private NotificationAttemptRepository $notificationAttemptRepository,
         private NotificationManager $notificationManager
     ) {
@@ -58,6 +55,7 @@ class NotificationPresenter extends BaseEventPresenter
     //
 
 
+    // Prepares data ($notificationsForForm) for both renderToApprove and createComponentApproveForm
     public function actionToApprove(): void
     {
         $count = $this->notificationMsgRepository->getCountToApprove();
@@ -121,7 +119,7 @@ class NotificationPresenter extends BaseEventPresenter
 
         if ($scheduledAtStr) {
             $scheduledAt = DateUtils::newBaDate($scheduledAtStr);
-            $this->notificationMsgRepository->updatescheduledAt((int) $id, $scheduledAt);
+            $this->notificationMsgRepository->rescheduleAt((int) $id, $scheduledAt);
         }
 
         $this->flashMessage('Notification updated.', 'msg_success');
@@ -131,7 +129,7 @@ class NotificationPresenter extends BaseEventPresenter
     public function handleApprove(int $id): void
     {
         try {
-            $this->eventManager->approveNotification($id);
+            $this->notificationManager->approveNotification($id);
             $this->flashMessage('Notifications for the event have been scheduled.', 'msg_success');
         } catch (Exception $e) {
             DebuggerUtils::logException($e, "Failed to approve notification #{$id}");
@@ -154,28 +152,41 @@ class NotificationPresenter extends BaseEventPresenter
         $this->page = max(1, min($this->page, $lastPage));
         $offset = ($this->page - 1) * self::PAGE_SIZE;
 
-        $notifications = $this->notificationMsgRepository->getScheduled(self::PAGE_SIZE, $offset);
-        $this->template->notifications = $notifications;
+        $notificationMsgs = $this->notificationMsgRepository->getScheduled(self::PAGE_SIZE, $offset);
+        $this->template->notificationMsgs = $notificationMsgs;
         
-        $msgIds = array_map(fn($n) => $n->id, $notifications);
+        $msgIds = array_map(fn($n) => $n->id, $notificationMsgs);
         $this->template->activeAttempts = $this->notificationAttemptRepository->getActiveAttemptsMap($msgIds);
 
         $this->template->page = $this->page;
         $this->template->lastPage = $lastPage;
     }
 
-    public function handleSend(int $attemptId): void
+    public function handleSend(int $msgId): void
     {
         try {
-            $error = $this->notificationManager->forceSend($attemptId);
+            $error = $this->notificationManager->forceSend($msgId);
             if ($error)
                 $this->flashMessage($error, 'msg_error');
             else
                 $this->flashMessage('Notification sending triggered.', 'msg_success');
 
         } catch (Exception $e) {
-            DebuggerUtils::logException($e, "Failed to send attempt #{$attemptId}");
+            DebuggerUtils::logException($e, "Failed to send msg #{$msgId}");
             $this->flashMessage('Failed to trigger sending: ' . $e->getMessage(), 'msg_error');
+        }
+        $this->redirect('this');
+    }
+
+    public function handleWithdraw(int $msgId): void
+    {
+        try {
+            $this->notificationManager->withdrawNotification($msgId);
+            $this->flashMessage('Notification withdrawn.', 'msg_success');
+
+        } catch (Exception $e) {
+            DebuggerUtils::logException($e, "Failed to withdraw msg #{$msgId}");
+            $this->flashMessage('Failed to withdraw notification: ' . $e->getMessage(), 'msg_error');
         }
         $this->redirect('this');
     }

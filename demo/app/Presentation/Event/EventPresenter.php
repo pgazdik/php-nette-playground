@@ -8,7 +8,6 @@ use App\Service\NotificationMsgRepository;
 use App\Service\NotificationAttemptRepository;
 use App\Presentation\BaseEventPresenter;
 use App\Utils\DateUtils;
-use Nette;
 use Nette\Application\UI\Form;
 
 class EventPresenter extends BaseEventPresenter

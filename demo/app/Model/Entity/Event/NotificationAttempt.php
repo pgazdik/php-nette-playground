@@ -34,37 +34,4 @@ class NotificationAttempt
     ) {
     }
 
-    public static function createFirstAttempt(NotificationMsg $msg): NotificationAttempt
-    {
-        return new NotificationAttempt(
-            notificationMsgId: $msg->id,
-            attemptNo: 1,
-            scheduledAt: DateUtils::baToUtc($msg->scheduledAt),
-            status: NotificationAttemptStatus::Scheduled,
-            msg: $msg,
-        );
-    }
-
-    public static function createNextAttempt(NotificationAttempt $previousAttempt): NotificationAttempt
-    {
-        // If we try to send a notification manually before it would be sent automatically, and it fails, 
-        // we do not want to delay the next attempt but keep the original time
-        $needsDelay = $previousAttempt->scheduledAt <= new DateTime();
-        $newScheduledAt = $needsDelay ? self::computeDelay($previousAttempt) : $previousAttempt->scheduledAt;
-
-        return new NotificationAttempt(
-            notificationMsgId: $previousAttempt->notificationMsgId,
-            attemptNo: $previousAttempt->attemptNo + 1,
-            scheduledAt: DateUtils::baToUtc($newScheduledAt),
-            status: NotificationAttemptStatus::Scheduled,
-            msg: $previousAttempt->msg,
-        );
-    }
-
-    public static function computeDelay(NotificationAttempt $previousAttempt): DateTime
-    {
-        $delayInMinutes = min(60, pow(2, $previousAttempt->attemptNo - 1));
-        return (clone $previousAttempt->scheduledAt)->modify("+{$delayInMinutes} minutes");
-    }
-
 }

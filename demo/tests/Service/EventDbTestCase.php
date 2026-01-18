@@ -15,6 +15,11 @@ use App\Service\EventRepository;
 use App\Service\NotificationMsgRepository;
 use App\Service\NotificationAttemptRepository;
 
+use Nextras\Migrations\Engine\Runner;
+use Nextras\Migrations\IDriver;
+use Nextras\Migrations\IConfiguration;
+use Nextras\Migrations\Printers\DevNull;
+
 use Tests\Db\DbTestCase;
 
 class EventDbTestCase extends DbTestCase
@@ -28,6 +33,8 @@ class EventDbTestCase extends DbTestCase
     protected NotificationMsgRepository $notificationMsgRepository;
     protected NotificationAttemptRepository $notificationAttemptRepository;
 
+    protected IConfiguration $configuration;
+
     public function setUp(): void
     {
         parent::setUp();
@@ -35,94 +42,18 @@ class EventDbTestCase extends DbTestCase
         $this->eventRepository = $this->container->getByType(EventRepository::class);
         $this->notificationMsgRepository = $this->container->getByType(NotificationMsgRepository::class);
         $this->notificationAttemptRepository = $this->container->getByType(NotificationAttemptRepository::class);
+
+        $this->configuration = $this->container->getByType(IConfiguration::class);
+
+        $this->initDb();
     }
 
-    protected function createEventTable(): void
+    private function initDb(): void
     {
-        $this->database->query('
-            CREATE TABLE `event` (
-              `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-              `patient_name` varchar(255) NOT NULL,
-              `phone_number` varchar(50) NOT NULL,
-              `doctor_name` varchar(255) NOT NULL,
-              `doctor_address` text NOT NULL,
-              `appointment_date` datetime NOT NULL,
+        $driver = $this->container->getByType(IDriver::class);
 
-              `attachment_content` LONGBLOB NULL,
-              `attachment_name` varchar(255) NULL,
-              `attachment_type` varchar(100) NULL,
-
-              `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-              `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        ');
-
-        $this->database->table('event')->delete();
-    }
-
-    protected function createNotificationTable(): void
-    {
-        $this->database->query('
-            CREATE TABLE `notification_msg` (
-              `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-              `event_id` int(11) NOT NULL,
-              `msg_index` int(11) NOT NULL,
-              `notification_type` varchar(20) NOT NULL,
-              `media_type` varchar(20) NOT NULL,
-              `status` varchar(20) NOT NULL,
-              `text` text NOT NULL,
-              `scheduled_at` datetime NOT NULL,
-              `approved_at` datetime NULL,
-
-              `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-              `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-              FOREIGN KEY (`event_id`) REFERENCES `event` (`id`) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        ');
-    }
-
-    protected function createNotificationAttemptTable(): void
-    {
-        $this->database->query('
-            CREATE TABLE `notification_attempt` (
-              `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-              `notification_msg_id` int(11) NOT NULL,
-              `attempt_no` int(11) NOT NULL,
-              `status` varchar(20) NOT NULL,
-
-              `scheduled_at` datetime NOT NULL,
-              `sent_at` datetime NULL,
-
-              `sending_error` varchar(255) NULL,
-              `check_error` varchar(255) NULL,
-
-              `gw_id` int(11) NULL,
-              `gw_send_status` varchar(255) NULL,
-              `gw_check_status` varchar(255) NULL,
-              `gw_error_code` int(11) NULL,
-              `gw_send_date` datetime NULL,
-              `gw_delivery_date` datetime NULL,
-
-              `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-              `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-              FOREIGN KEY (`notification_msg_id`) REFERENCES `notification_msg` (`id`) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        ');
-    }
-
-    protected function initDb(): void
-    {
-        $this->dropAllTables();
-        $this->createEventTable();
-        $this->createNotificationTable();
-        $this->createNotificationAttemptTable();
-    }
-
-    protected function dropAllTables(): void
-    {
-        $this->database->query("DROP TABLE IF EXISTS `notification_attempt`");
-        $this->database->query("DROP TABLE IF EXISTS `notification_msg`");
-        $this->database->query("DROP TABLE IF EXISTS `event`");
+        $runner = new Runner($driver, new DevNull());
+        $runner->run(Runner::MODE_RESET, $this->configuration);
     }
 
     //

@@ -19,6 +19,13 @@ class TestBootstrap
 		$this->configurator = new Configurator;
 		$this->configurator->setTempDirectory($this->rootDir . '/temp');
 
+		// Needed becaue appDir is the parent containing the bootstrap file - the file that creates Configurator instance
+		// 				'appDir' => isset($trace[1]['file']) ? dirname($trace[1]['file']) : null,
+		// As our we are not within app/, but tests/, we need to override it
+		$this->configurator->addParameters([
+			'appDir' => $this->rootDir . '/app',
+		]);
+
 	}
 
 	public function bootTestApplication(): Nette\DI\Container
@@ -43,7 +50,7 @@ class TestBootstrap
 			mkdir($logDir, 0777, true);
 		}
 		\Tracy\Debugger::$logDirectory = $logDir;
-		
+
 		//$this->configurator->enableTracy($logDir);
 
 		// To see stacktrace
@@ -62,6 +69,7 @@ class TestBootstrap
 		$configDir = $this->rootDir . '/config';
 		$this->configurator->addConfig("$configDir/common.neon");
 		$this->configurator->addConfig("$configDir/db-test.neon");
+		$this->configurator->addConfig("$configDir/migrations.neon");
 		$this->configurator->addConfig("$configDir/services.neon");
 		$this->configurator->addConfig("$configDir/services-test.neon");
 	}

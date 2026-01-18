@@ -12,5 +12,5 @@ orisai.scheduler:
 			callback: [@task.notifications, 'run']
 
 services:
-	task.test: Task\MyJobService1
-	task.notifications: Task\NotificationManagingTask
+	task.test: App\Task\MyJobService1
+	task.notifications: App\Task\NotificationManagingTask

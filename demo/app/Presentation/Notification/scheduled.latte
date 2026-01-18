@@ -1,6 +1,13 @@
 {block content}
 <h1>Scheduled Notifications</h1>
 
+{foreach $activeAttempts as $notificationId => $attempt}
+    Notification ID: {$notificationId}<br>
+    Attempt ID: {$attempt->id}<br>
+    Status: {$attempt->status->value}<br>
+    <hr>
+{/foreach}
+
 <table class="data-table">
     <thead>
         <tr>
@@ -16,26 +23,27 @@
         </tr>
     </thead>
     <tbody>
-        {foreach $notifications as $notification}
-            <tr n:class="'status-' . $notification->status->toColor()->value">
-                <td class="status-cell">{$notification->id}</td>
-                <td><a n:href="Event:show, id => $notification->eventId">{$notification->eventId}</a></td>
-                <td>{$notification->notificationType->value}</td>
-                <td>{$notification->mediaType->value}</td>
-                <td><span class="pill">{$notification->status->value}</span></td>
-                <td title="{$notification->text}">{$notification->text|truncate:50}</td>
-                <td>{$notification->scheduledAt|date:'d.m.y H:i'}</td>
-                <td>{$notification->createdAt|date:'d.m.y H:i'}</td>
+        {foreach $notificationMsgs as $notificationMsg}
+            <tr n:class="'status-' . $notificationMsg->status->toColor()->value">
+                <td class="status-cell">{$notificationMsg->id}</td>
+                <td><a n:href="Event:show, id => $notificationMsg->eventId">{$notificationMsg->eventId}</a></td>
+                <td>{$notificationMsg->notificationType->value}</td>
+                <td>{$notificationMsg->mediaType->value}</td>
+                <td><span class="pill">{$notificationMsg->status->value}</span></td>
+                <td title="{$notificationMsg->text}">{$notificationMsg->text|truncate:50}</td>
+                <td>{$notificationMsg->scheduledAt|date:'d.m.y H:i'}</td>
+                <td>{$notificationMsg->createdAt|date:'d.m.y H:i'}</td>
                 <td>
-                    {if isset($activeAttempts[$notification->id])}
-                        {var $attempt = $activeAttempts[$notification->id]}
-                        {if $attempt->status->value === 'scheduled'}
-                            <a n:href="send! attemptId => $attempt->id" class="btn btn-important">Send</a>
-                        {elseif $attempt->status->supportsCheck()}
+                    {if isset($activeAttempts[$notificationMsg->id])}
+                        {var $attempt = $activeAttempts[$notificationMsg->id]}
+                        {if $attempt->status->supportsCheck()}
                             <a n:href="checkStatus! attemptId => $attempt->id" class="btn btn-normal">Check Status</a>
                         {else}
                             <span class="text-muted">{$attempt->status->value}</span>
                         {/if}
+                    {elseif $notificationMsg->status->value === 'scheduled'}
+                        <a n:href="withdraw! msgId => $notificationMsg->id" class="btn btn-normal">Withdraw</a>
+                        <a n:href="send! msgId => $notificationMsg->id" class="btn btn-important">Send</a>
                     {else}
                         <span class="text-muted">-</span>
                     {/if}

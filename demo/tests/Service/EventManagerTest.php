@@ -18,7 +18,6 @@ class EventManagerTest extends EventDbTestCase
     public function setUp(): void
     {
         parent::setUp();
-        $this->initDb();
         $this->eventManager = $this->container->getByType(EventManager::class);
     }
 
@@ -81,52 +80,4 @@ class EventManagerTest extends EventDbTestCase
         $this->assertLessThan(60, $diff, 'Send time should be approx 7 days before appointment');
     }
 
-    public function test_ApproveNotification()
-    {
-        // 1. Create Event 1 with 2 notifications
-        $event1 = $this->createTestEvent('Event 1', new DateTime('+1 day'));
-        $eventId1 = $this->eventRepository->insert($event1);
-
-        $msg1_1 = $this->createNotificationMsg($eventId1, 1, MediaType::Text, "E1 Text", NotificationMsgStatus::New);
-        $this->notificationMsgRepository->insert($msg1_1);
-
-        $msg1_2 = $this->createNotificationMsg($eventId1, 2, MediaType::Image, "", NotificationMsgStatus::New);
-        $this->notificationMsgRepository->insert($msg1_2);
-
-        // 2. Create Event 2 with 1 notification (Control)
-        $event2 = $this->createTestEvent('Event 2', new DateTime('+1 day'));
-        $eventId2 = $this->eventRepository->insert($event2);
-
-        $msg2_1 = $this->createNotificationMsg($eventId2, 1, MediaType::Text, "E2 Text", NotificationMsgStatus::New);
-        $this->notificationMsgRepository->insert($msg2_1);
-
-        // 3. Approve (Schedule) Event 1
-        $this->eventManager->approveNotification($msg1_1->id);
-
-        // 4. Verify Event 1 notifications are Scheduled
-        $msgs1 = $this->database->table('notification_msg')
-            ->where('event_id', $eventId1)
-            ->fetchAll();
-
-        foreach ($msgs1 as $row) {
-            $this->assertEquals(NotificationMsgStatus::Scheduled->value, $row->status);
-
-            // Assert Attempt created
-            $attempt = $this->database->table('notification_attempt')
-                ->where('notification_msg_id', $row->id)
-                ->fetch();
-
-            if ($row->notification_type === NotificationType::Main->value && $row->media_type === MediaType::Text->value) {
-                $this->assertNotNull($attempt, "Attempt should be created for notification {$row->id}, type: {$row->notification_type}, media: {$row->media_type}");
-                $this->assertEquals($row->scheduled_at, $attempt->scheduled_at, "Attempt send date should match message send date");
-
-            } else {
-                $this->assertNull($attempt, "Attempt should not be created for notification {$row->id}, type: {$row->notification_type}, media: {$row->media_type}");
-            }
-        }
-
-        // 5. Verify Event 2 notification is still New
-        $row2 = $this->database->table('notification_msg')->get($msg2_1->id);
-        $this->assertEquals(NotificationMsgStatus::New ->value, $row2->status);
-    }
 }

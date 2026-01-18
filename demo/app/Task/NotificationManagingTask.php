@@ -1,5 +1,5 @@
 <?php
-namespace Task;
+namespace App\Task;
 
 use App\Service\NotificationManager;
 use Tracy\Debugger;

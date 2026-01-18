@@ -3,6 +3,7 @@ namespace App\Service;
 
 use App\Model\Entity\Event\NotificationAttempt;
 use App\Model\Entity\Event\NotificationAttemptStatus;
+use App\Utils\AppUtils;
 use App\Utils\DateUtils;
 use Nette\Database\Explorer;
 use Nette\Database\Table\ActiveRow;
@@ -77,15 +78,11 @@ class NotificationAttemptRepository
     // Sending
     //
 
-    /** @return NotificationAttempt[] */
-    public function listToSend(): array
+    public function getNextAttemptNo(int $msgId): int
     {
-        $rows = $this->database->table('notification_attempt')
-            ->where('scheduled_at <= NOW()')
-            ->where('status = ?', NotificationAttemptStatus::Scheduled->value)
-            ->fetchAll();
-
-        return self::toNotificationAttempts($rows, true);
+        return $this->database->table('notification_attempt')
+            ->where('notification_msg_id', $msgId)
+            ->max('attempt_no') + 1;
     }
 
     //
@@ -96,18 +93,21 @@ class NotificationAttemptRepository
     public function listToCheck(): array
     {
         $rows = $this->database->table('notification_attempt')
-            ->where('status = ?', NotificationAttemptStatus::Sent->value)
+            ->where('status IN ?', AppUtils::toEnumValues(NotificationAttemptStatus::checkSupportingStatuses()))
             ->fetchAll();
 
         return self::toNotificationAttempts($rows, true);
     }
 
-    /** @return array<int, NotificationAttempt> [msgId => Attempt] */
+    /**
+     * Acitve attempt is one that is not final yet, indicationg the Msg was sent, but we don't yet know if it was delivered or if it failed.
+     *  
+     * @return array<int, NotificationAttempt> [msgId => Attempt] */
     public function getActiveAttemptsMap(array $msgIds): array
     {
         $rows = $this->database->table('notification_attempt')
             ->where('notification_msg_id', $msgIds)
-            ->where('status NOT IN ?', [NotificationAttemptStatus::Delivered->value, NotificationAttemptStatus::Failed->value])
+            ->where('status NOT IN ?', AppUtils::toEnumValues(NotificationAttemptStatus::finalStatuses()))
             ->order('id DESC')
             ->fetchAll();
 

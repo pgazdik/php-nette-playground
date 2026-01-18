@@ -49,7 +49,7 @@ class EventManager
             msgIndex: 1,
             notificationType: NotificationType::Main,
             mediaType: MediaType::Text,
-            status: NotificationMsgStatus::New,
+            status: NotificationMsgStatus::Draft,
             text: $text,
             scheduledAt: $scheduledAt
         );
@@ -63,7 +63,7 @@ class EventManager
                 msgIndex: 2,
                 notificationType: NotificationType::Main,
                 mediaType: MediaType::Image,
-                status: NotificationMsgStatus::New,
+                status: NotificationMsgStatus::Draft,
                 text: '',
                 scheduledAt: $scheduledAt,
             );
@@ -71,15 +71,4 @@ class EventManager
         }
     }
 
-    public function approveNotification(int $notificationId): void
-    {
-        $notificationMsg = $this->notificationMsgRepository->getById($notificationId);
-        if (!$notificationMsg) {
-            throw new \Exception("Notification not found");
-        }
-
-        $this->notificationMsgRepository->approveNotificationsForEvent($notificationMsg->eventId);
-
-        $this->notificationAttemptRepository->insert(NotificationAttempt::createFirstAttempt($notificationMsg));
-    }
 }

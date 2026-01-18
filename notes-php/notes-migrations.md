@@ -40,6 +40,15 @@ For DDL like creating a table, we add an SQL file to the `structure` directory, 
 
 Doc: https://nextras.org/migrations/docs/master/
 
+### Create Migration File
+
+```bash
+docker compose exec -w //application/demo php-fpm php ./bin/console migrations:create $group $name
+```
+
+> `$group` is one of the subdirectories in `demo/app/migrations` (structures, basic-data, dummy-data).
+> `$name` is a descriptive name for the migration.
+
 ### Run the Migration
 
 ```bash
@@ -48,5 +57,3 @@ docker compose exec -w //application/demo php-fpm php ./bin/console migrations:c
 
 This creates a `migrations` table if not exists and applies all not yet applied migrations.
 
-
-Now, when an event is created, we also want to create a notification message (NotificationMsg) in our app. I suggest we refactor the code a little. Our Presenter won't call EventService directly, but an Event manager, with an instance of an Event. Event manager will then call the existing EventService and a new NotificationService to create the Event but also the NotificationMsg, respectively. The NotificationMsg will be of NotificationType "main" and MsgType "text", and the sendAt will be 7 days before the Event's appointment date. However, if the appointment is within 7 days, the sendAt will be set to current time. The text should be a informing the patient about his appointment with given doctor. If the event in question also has an attachementContent, then a second NotificationMsg with the same sendAt will be created, but this will be of MsgType "image", with no text.

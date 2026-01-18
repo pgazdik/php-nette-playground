@@ -10,13 +10,13 @@ class ExplanationUtils
     {
         return [
             (object) [
-                'name' => NotificationMsgStatus::New->value,
-                'color' => NotificationMsgStatus::New->toColor()->value,
+                'name' => NotificationMsgStatus::Draft->value,
+                'color' => NotificationMsgStatus::Draft->toColor()->value,
                 'description' => 'Message was created and needs to be approved..',
             ],
             (object) [
-                'name' => NotificationAttemptStatus::Scheduled->value,
-                'color' => NotificationAttemptStatus::Scheduled->toColor()->value,
+                'name' => NotificationMsgStatus::Scheduled->value,
+                'color' => NotificationMsgStatus::Scheduled->toColor()->value,
                 'description' => 'Message was approved and is scheduled to be sent.',
             ],
             (object) [

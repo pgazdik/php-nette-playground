@@ -19,5 +19,10 @@ The relevant code is within `demo` dir, and uses the term Event, e.g.
 * app/Model/Event
 * tests/Service/EventServiceTest
 
+We use Nextras migrations, with the migrations files in `demo/migrations` dir.
+
+There is a cron job triggered every minute (configured on OS level, see `docker-compose.yml`), the tasks are defined in `demo/app/Tasks`.
+
+Most of our tests accesss a DB, with the base class being `tests/Service/EventDbTestCase.php`.
 
 

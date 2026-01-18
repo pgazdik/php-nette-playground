@@ -13,8 +13,6 @@ class NotificationMsgRepositoryTest extends EventDbTestCase
     public function setUp(): void
     {
         parent::setUp();
-
-        $this->initDb();
     }
 
     public function test_GetToApprove_Returns_OnlyNewTextMessages()
@@ -26,11 +24,11 @@ class NotificationMsgRepositoryTest extends EventDbTestCase
         // 2. Create Notifications
 
         // To Approve: New / Text
-        $targetMsg = $this->createNotificationMsg($eventId, 1, MediaType::Text, 'Target Message', NotificationMsgStatus::New);
+        $targetMsg = $this->createNotificationMsg($eventId, 1, MediaType::Text, 'Target Message', NotificationMsgStatus::Draft);
         $this->notificationMsgRepository->insert($targetMsg);
 
         // Ignored: New / Image
-        $imageMsg = $this->createNotificationMsg($eventId, 2, MediaType::Image, '', NotificationMsgStatus::New);
+        $imageMsg = $this->createNotificationMsg($eventId, 2, MediaType::Image, '', NotificationMsgStatus::Draft);
         $this->notificationMsgRepository->insert($imageMsg);
 
         // Ignored: Scheduled / Text
@@ -43,7 +41,7 @@ class NotificationMsgRepositoryTest extends EventDbTestCase
         $this->assertCount(1, $results);
         $this->assertEquals('Target Message', $results[0]->text);
         $this->assertEquals(MediaType::Text, $results[0]->mediaType);
-        $this->assertEquals(NotificationMsgStatus::New , $results[0]->status);
+        $this->assertEquals(NotificationMsgStatus::Draft , $results[0]->status);
     }
 
     public function test_UpdateText()
@@ -52,7 +50,7 @@ class NotificationMsgRepositoryTest extends EventDbTestCase
         $event = $this->createTestEvent('Updater', new DateTime('+1 day'));
         $eventId = $this->eventRepository->insert($event);
 
-        $msg = $this->createNotificationMsg($eventId, 1, MediaType::Text, 'Original Text', NotificationMsgStatus::New);
+        $msg = $this->createNotificationMsg($eventId, 1, MediaType::Text, 'Original Text', NotificationMsgStatus::Draft);
         $this->notificationMsgRepository->insert($msg);
 
         // 2. Update Text

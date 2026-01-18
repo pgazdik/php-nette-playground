@@ -4,7 +4,7 @@ namespace App\Model\Entity\Event;
 
 enum NotificationMsgStatus: string
 {
-    case New = 'new';
+    case Draft = 'draft';
     case Scheduled = 'scheduled';
     case Sent = 'sent';
     case Delivered = 'delivered';
@@ -13,7 +13,7 @@ enum NotificationMsgStatus: string
     public function toColor(): StatusColor
     {
         return match ($this) {
-            self::New => StatusColor::Grey,
+            self::Draft => StatusColor::Grey,
             self::Scheduled => StatusColor::Teal,
             self::Sent => StatusColor::LightBlue,
             self::Delivered => StatusColor::Green,

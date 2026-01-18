@@ -1,5 +1,5 @@
 <?php
-namespace Task;
+namespace App\Task;
 
 use Tracy\Debugger;
 

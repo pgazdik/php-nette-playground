@@ -12,8 +12,6 @@ class EventRepositoryTest extends EventDbTestCase
     public function setUp(): void
     {
         parent::setUp();
-
-        $this->initDb();
     }
 
     public function testCreateAndGetAll()

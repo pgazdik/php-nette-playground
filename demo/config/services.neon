@@ -6,6 +6,7 @@ services:
 	- App\Service\NotificationManager
 	- App\Service\NotificationAttemptRepository
 	- App\Service\LockService
+	- App\Service\NotificationCheckResponseHandler
 	smsGwService: App\Service\SmsGwService(::getenv('SMS_GW_URL'), ::getenv('SMS_GW_TOKEN'))
 
 	latte.latteFactory:

@@ -4,7 +4,6 @@ namespace App\Model\Entity\Event;
 
 enum NotificationAttemptStatus: string
 {
-    case Scheduled = 'scheduled';
     case Sent = 'sent';
     case NotFound = 'notFound';
     case Queued = 'queued';
@@ -14,13 +13,12 @@ enum NotificationAttemptStatus: string
 
     public function supportsCheck(): bool
     {
-        return in_array($this, [self::Sent, self::Queued, self::NotFound, self::CheckError]);
+        return in_array($this, self::checkSupportingStatuses());
     }
 
     public function toColor(): StatusColor
     {
         return match ($this) {
-            self::Scheduled => StatusColor::Teal,
             self::Sent => StatusColor::LightBlue,
             self::Queued => StatusColor::LightBlue,
             self::NotFound => StatusColor::LightBlue,
@@ -29,4 +27,14 @@ enum NotificationAttemptStatus: string
             self::Failed => StatusColor::Red,
         };
     }
+    public static function checkSupportingStatuses(): array
+    {
+        return [self::Sent, self::Queued, self::NotFound, self::CheckError];
+    }
+
+    public static function finalStatuses(): array
+    {
+        return [self::Delivered, self::Failed];
+    }
+
 }

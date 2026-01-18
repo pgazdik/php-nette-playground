@@ -59,7 +59,7 @@ class NotificationMsgRepository
     public function getCountToApprove(): int
     {
         return $this->database->table('notification_msg')
-            ->where('status', NotificationMsgStatus::New ->value)
+            ->where('status', NotificationMsgStatus::Draft ->value)
             ->where('media_type', MediaType::Text->value)
             ->count('*');
     }
@@ -68,7 +68,7 @@ class NotificationMsgRepository
     public function getToApprove(int $limit, int $offset): array
     {
         $rows = $this->database->table('notification_msg')
-            ->where('status', NotificationMsgStatus::New ->value)
+            ->where('status', NotificationMsgStatus::Draft ->value)
             ->where('media_type', MediaType::Text->value)
             ->order('scheduled_at ASC')
             ->limit($limit, $offset)
@@ -84,11 +84,14 @@ class NotificationMsgRepository
             ->update(['text' => $text]);
     }
 
-    public function updatescheduledAt(int $id, \DateTime $scheduledAt): void
+    public function rescheduleAt(int $id, \DateTime $scheduledAt): void
     {
         $this->database->table('notification_msg')
             ->where('id', $id)
-            ->update(['scheduled_at' => DateUtils::baToUtc($scheduledAt)]);
+            ->update([
+                'scheduled_at' => DateUtils::baToUtc($scheduledAt),
+                'status' => NotificationMsgStatus::Scheduled->value
+            ]);
     }
 
     public function updateStatus(int $id, NotificationMsgStatus $status): void
@@ -96,6 +99,14 @@ class NotificationMsgRepository
         $this->database->table('notification_msg')
             ->where('id', $id)
             ->update(['status' => $status->value]);
+    }
+
+    public function withdrawNotification(int $id): void
+    {
+        $this->database->table('notification_msg')
+            ->where('id', $id)
+            ->where('status', NotificationMsgStatus::Scheduled->value)
+            ->update(['status' => NotificationMsgStatus::Draft->value]);
     }
 
     public function getById(int $id): ?NotificationMsg
@@ -106,10 +117,17 @@ class NotificationMsgRepository
 
     public function approveNotificationsForEvent(int $eventId): void
     {
-        $this->database->table('notification_msg')
+        // Approve only the first available message to ensure sequential processing
+        $row = $this->database->table('notification_msg')
             ->where('event_id', $eventId)
-            ->where('status', NotificationMsgStatus::New ->value)
-            ->update(['status' => NotificationMsgStatus::Scheduled->value]);
+            ->where('status', NotificationMsgStatus::Draft ->value)
+            ->order('msg_index ASC')
+            ->limit(1)
+            ->fetch();
+
+        if ($row) {
+            $row->update(['status' => NotificationMsgStatus::Scheduled->value]);
+        }
     }
 
     //
@@ -128,6 +146,18 @@ class NotificationMsgRepository
             ->where('status', NotificationMsgStatus::Scheduled->value)
             ->order('scheduled_at ASC')
             ->limit($limit, $offset)
+            ->fetchAll();
+
+        return self::rowsToNotificationMsgs($rows);
+    }
+
+    /** @return NotificationMsg[] */
+    public function listEligibleForSending(): array
+    {
+        $rows = $this->database->table('notification_msg')
+            ->where('status', NotificationMsgStatus::Scheduled->value)
+            ->where('scheduled_at <= NOW()')
+            ->order('scheduled_at ASC')
             ->fetchAll();
 
         return self::rowsToNotificationMsgs($rows);

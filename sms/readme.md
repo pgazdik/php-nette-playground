@@ -208,7 +208,20 @@ Statuses:
 - delivery_pending
 - delivery_unknown
 - delivery_failed
+    povazuj to ako dorucene
 - sending_error
+    problem brany / skus znova
+    prilis velka fotka (nema zmysel skusat)
+        1 minuta,
+        10 minut - poslat mail, ze je problem,
+        30 minut
 - reserved
 - error
+    problem s cislom
+    skus znova, ale len raz?
+
+
+TODO
+    obrazky z adresara
+    posielaj vsetky fotky z adresara naraz
 
