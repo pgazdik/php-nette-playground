@@ -30,7 +30,7 @@ class EventRepository
         return $row ? $this->toEvent($row) : null;
     }
 
-    public function insert(Event $event): int
+    public function insert(Event $event): void
     {
         $row = $this->database->table('event')->insert([
             'patient_name' => $event->patientName,
@@ -43,7 +43,7 @@ class EventRepository
             'attachment_type' => $event->attachmentType
         ]);
 
-        return $row->id;
+        $event->id = $row->id;
     }
 
     /** @return Event[] */

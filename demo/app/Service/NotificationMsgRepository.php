@@ -164,17 +164,18 @@ class NotificationMsgRepository
     }
 
     //
-    // Find next message
+    // Find next messages
     //
 
-    public function findNextMessage(NotificationMsg $prevMessage): ?NotificationMsg
+    /** @return NotificationMsg[] */
+    public function findNextMessages(NotificationMsg $prevMessage): array
     {
-        $row = $this->database->table('notification_msg')
+        $rows = $this->database->table('notification_msg')
             ->where('event_id', $prevMessage->eventId)
             ->where('msg_index', $prevMessage->msgIndex + 1)
-            ->fetch();
+            ->fetchAll();
 
-        return $row ? self::toNotificationMsg($row) : null;
+        return self::rowsToNotificationMsgs($rows);
     }
 
     /** @return NotificationMsg[] */

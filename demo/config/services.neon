@@ -6,7 +6,8 @@ services:
 	- App\Service\NotificationManager
 	- App\Service\NotificationAttemptRepository
 	- App\Service\LockService
-	- App\Service\NotificationCheckResponseHandler
+	- App\Service\MsgCheck\MsgCheckResponseHandler
+	- App\Utils\MediaHandler(%appDir%/../media)
 	smsGwService: App\Service\SmsGwService(::getenv('SMS_GW_URL'), ::getenv('SMS_GW_TOKEN'))
 
 	latte.latteFactory:

@@ -8,6 +8,7 @@ use App\Service\NotificationMsgRepository;
 use App\Service\NotificationAttemptRepository;
 use App\Presentation\BaseEventPresenter;
 use App\Utils\DateUtils;
+use App\Utils\MediaHandler;
 use Nette\Application\UI\Form;
 
 class EventPresenter extends BaseEventPresenter
@@ -16,7 +17,8 @@ class EventPresenter extends BaseEventPresenter
         private EventRepository $eventRepository,
         private EventManager $eventManager,
         private NotificationMsgRepository $notificationMsgRepository,
-        private NotificationAttemptRepository $notificationAttemptRepository
+        private NotificationAttemptRepository $notificationAttemptRepository,
+        private MediaHandler $mediaHandler,
     ) {
     }
 
@@ -40,8 +42,10 @@ class EventPresenter extends BaseEventPresenter
         $form->addText('phoneNumber', 'Phone Number:')
             ->setRequired('Please enter the phone number.');
 
-        $form->addText('doctorName', 'Doctor Name:')
-            ->setRequired('Please enter the doctor name.');
+        $dirNames = $this->mediaHandler->listDirNames();
+        $form->addSelect('doctorName', 'Doctor Name:', array_combine($dirNames, $dirNames))
+            ->setPrompt('Select a doctor')
+            ->setRequired('Please select a doctor.');
 
         $form->addTextArea('doctorAddress', 'Doctor Address:')
             ->setRequired('Please enter the doctor address.');

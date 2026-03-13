@@ -7,6 +7,9 @@ use App\Model\Entity\Event\NotificationAttempt;
 use App\Model\Entity\Event\NotificationAttemptStatus;
 use App\Model\Entity\Event\NotificationMsg;
 use App\Model\Entity\Event\NotificationMsgStatus;
+use App\Service\MsgCheck\MsgCheckNextStepType;
+use App\Service\MsgCheck\MsgCheckResponse;
+use App\Service\MsgCheck\MsgCheckResponseHandler;
 use Nette\Database\Explorer;
 use Tracy\Debugger;
 
@@ -23,7 +26,7 @@ class NotificationManager
         private NotificationAttemptRepository $notificationAttemptRepository,
         private SmsGwService $smsGwService,
         private LockService $lockService,
-        private NotificationCheckResponseHandler $notificationCheckResponseHandler,
+        private MsgCheckResponseHandler $msgCheckResponseHandler,
     ) {
     }
 
@@ -103,7 +106,6 @@ class NotificationManager
         $attempt = new NotificationAttempt(
             notificationMsgId: $msg->id,
             attemptNo: $attemptNo,
-            scheduledAt: new DateTime(), // Required by DB but ignored for logic
             status: NotificationAttemptStatus::Sent, // Initial status
             msg: $msg
         );
@@ -260,42 +262,34 @@ class NotificationManager
             return;
         }
 
-        $response = $response[0];
+        $gwResponse = $response[0];
 
-        // sending_ok_no_report
-        // sending_ok
-        // delivery_ok
-        // delivery_pending
-        // delivery_unknown
-        // delivery_failed
-        // sending_error
-        // reserved
-        // error
-        $gwStatus = $response->status;
+        $msgResponse = new MsgCheckResponse(
+            $gwResponse->status,
+            $gwResponse->error_code,
+            $gwResponse->sending_date ? new DateTime($gwResponse->sending_date) : null,
+            $gwResponse->delivery_date ? new DateTime($gwResponse->delivery_date) : null
+        );
 
-        $gwDeliveryDate = $response->delivery_date;
-
-        $delivered = $gwDeliveryDate !== null || $gwStatus === 'sending_ok';
-        $failed = str_contains($gwStatus, 'error');
-
-        $newStatus = $delivered ? NotificationAttemptStatus::Delivered :
-            ($failed ? NotificationAttemptStatus::Failed : NotificationAttemptStatus::Queued);
+        $nextStep = $this->msgCheckResponseHandler->determineNextStep($attempt, $msgResponse);
 
         $this->notificationAttemptRepository->update(
             $attempt,
-            $newStatus,
-            $gwStatus,
-            $response->error_code,
-            $response->sending_date ? new DateTime($response->sending_date) : null,
-            $gwDeliveryDate ? new DateTime($gwDeliveryDate) : null
+            $nextStep->newStatus,
+            $nextStep->newAttemptCheckAt(),
+            $msgResponse->status,
+            $nextStep->newGwCheckStatusHistory,
+            $msgResponse->errorCode,
+            $msgResponse->sendingDate,
+            $msgResponse->deliveryDate
         );
 
-        if ($delivered) {
+        if ($nextStep->type === MsgCheckNextStepType::MarkDelivered) {
             $this->notificationMsgRepository->updateStatus($attempt->notificationMsgId, NotificationMsgStatus::Delivered);
-            $this->scheduleNextMessage($attempt->msg);
-        } else if ($failed) {
+            $this->scheduleNextMessages($attempt->msg);
+        } else if ($nextStep->type === MsgCheckNextStepType::ResendMessage) {
             Debugger::log("Notification attempt # {$attempt->id} failed and will be rescheduled. Response: " . json_encode($response));
-            $this->rescheduleMessage($attempt->msg, $attempt->attemptNo);
+            $this->rescheduleMessage($attempt->msg, $nextStep->resendDelayInMin);
         }
     }
 
@@ -305,28 +299,26 @@ class NotificationManager
         $this->notificationAttemptRepository->noteMessageCheckError($attempt, $errorMsg);
     }
 
-    private function rescheduleMessage(NotificationMsg $msg, int $lastAttemptNo): void
+    private function rescheduleMessage(NotificationMsg $msg, int $delayInMinutes): void
     {
-        $delayInMinutes = min(60, pow(2, $lastAttemptNo - 1));
-
-        $newScheduledAt = (new DateTime())->modify("+{$delayInMinutes} minutes");
+        $newScheduledAt = new DateTime("+{$delayInMinutes} minutes");
 
         $this->notificationMsgRepository->rescheduleAt($msg->id, $newScheduledAt);
     }
 
-    private function scheduleNextMessage(NotificationMsg $currentMsg): void
+    private function scheduleNextMessages(NotificationMsg $currentMsg): void
     {
-        $nextNotificationMsg = $this->notificationMsgRepository->findNextMessage($currentMsg);
-        if (!$nextNotificationMsg) {
+        $nextNotificationMsgs = $this->notificationMsgRepository->findNextMessages($currentMsg);
+        if (count($nextNotificationMsgs) === 0) {
             Debugger::log("No more notifications left for event: {$currentMsg->eventId}");
             return;
         }
 
-        // We assume next message is New. We set it to Scheduled so it gets picked up.
-        if ($nextNotificationMsg->status === NotificationMsgStatus::Draft) {
-            $this->notificationMsgRepository->updateStatus($nextNotificationMsg->id, NotificationMsgStatus::Scheduled);
-            // Optionally ensure scheduledAt is now? It should be already set to 'now' (or 7 days prior logic) by creation.
-            // If it was scheduled in the past, it will be picked up immediately.
+        foreach ($nextNotificationMsgs as $nextNotificationMsg) {
+            // We assume next message is Draft. We set it to Scheduled so it gets picked up.
+            if ($nextNotificationMsg->status === NotificationMsgStatus::Draft) {
+                $this->notificationMsgRepository->updateStatus($nextNotificationMsg->id, NotificationMsgStatus::Scheduled);
+            }
         }
     }
 

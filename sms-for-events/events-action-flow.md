@@ -76,21 +76,26 @@ Set `Notification Attempt` as `NotFound`, and do nothing. Msg was not sent yet, 
 Set `Notification Attempt` as **CheckError**, log+store error msg, but do nothing so check will happen again.
 
 **Valid JSON**
+
 - sending_ok_no_report
 - sending_ok
 - delivery_ok
 - delivery_pending
 - delivery_unknown
 - delivery_failed
+
 Set `NotificationMsg` / `NotificationAttempt` **Delivered**, schedule next message
 
 - sending_error
-    Set `Notification Attempt` as **Failed**, log+store error msg, but do nothing so check will happen again.
-    reschedule 2min, 5min, 10min, send mail
-        
-- reserved
-    Set `Notification Attempt` as **CheckError**
-    check status again 1min, 2min, 5min, send mail
+
+Set `Notification Attempt` as **Failed**, log+store error msg, but do nothing so check will happen again. \
+Reschedule 2min, 5min, 10min, send mail
 
 - error
-    reschedule 2min, 10min, send mail
+    reschedule 2min, 5min, 10min, send mail
+
+- reserved
+ 
+ Set `Notification Attempt` as **CheckError**
+ Check again 1min, 2min, 5min, send mail
+

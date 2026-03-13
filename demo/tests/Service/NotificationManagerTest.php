@@ -25,30 +25,34 @@ class NotificationManagerTest extends EventDbTestCase
         $this->assertInstanceOf(SmsGwMockService::class, $this->smsGwService);
     }
 
+    // #################################
+    // Approve / Withdraw
+    // #################################
+
     public function test_ApproveNotification()
     {
         // 1. Create Event 1 with 2 notifications
         $event1 = $this->createTestEvent('Event 1', new DateTime('+1 day'));
-        $eventId1 = $this->eventRepository->insert($event1);
+        $this->eventRepository->insert($event1);
 
-        $msg1_1 = $this->createNotificationMsg($eventId1, 1, MediaType::Text, "E1 Text", NotificationMsgStatus::Draft);
+        $msg1_1 = $this->createNotificationMsg($event1->id, 1, MediaType::Text, "E1 Text", NotificationMsgStatus::Draft);
         $this->notificationMsgRepository->insert($msg1_1);
 
-        $msg1_2 = $this->createNotificationMsg($eventId1, 2, MediaType::Image, "", NotificationMsgStatus::Draft);
+        $msg1_2 = $this->createNotificationMsg($event1->id, 2, MediaType::Image, "", NotificationMsgStatus::Draft);
         $this->notificationMsgRepository->insert($msg1_2);
 
         // 2. Create Event 2 with 1 notification (Control)
         $event2 = $this->createTestEvent('Event 2', new DateTime('+1 day'));
-        $eventId2 = $this->eventRepository->insert($event2);
+        $this->eventRepository->insert($event2);
 
-        $msg2_1 = $this->createNotificationMsg($eventId2, 1, MediaType::Text, "E2 Text", NotificationMsgStatus::Draft);
+        $msg2_1 = $this->createNotificationMsg($event2->id, 1, MediaType::Text, "E2 Text", NotificationMsgStatus::Draft);
         $this->notificationMsgRepository->insert($msg2_1);
 
         // 3. Approve (Schedule) Event 1
         $this->notificationManager->approveNotification($msg1_1->id);
 
         // 4. Verify Event 1 notifications
-        
+
         // Msg 1 should be Scheduled
         $row1_1 = $this->database->table('notification_msg')->get($msg1_1->id);
         $this->assertEquals(NotificationMsgStatus::Scheduled->value, $row1_1->status);
@@ -63,15 +67,15 @@ class NotificationManagerTest extends EventDbTestCase
 
         // 5. Verify Event 2 notification is still New
         $row2 = $this->database->table('notification_msg')->get($msg2_1->id);
-        $this->assertEquals(NotificationMsgStatus::Draft ->value, $row2->status);
+        $this->assertEquals(NotificationMsgStatus::Draft->value, $row2->status);
     }
 
     public function test_WithdrawNotification()
     {
         // 1. Setup Scheduled message
         $event = $this->createTestEvent('Withdraw Test');
-        $eventId = $this->eventRepository->insert($event);
-        $msg = $this->createTextNotificationMsg($eventId, 1, "Withdraw me", NotificationMsgStatus::Scheduled);
+        $this->eventRepository->insert($event);
+        $msg = $this->createTextNotificationMsg($event->id, 1, "Withdraw me", NotificationMsgStatus::Scheduled);
         $this->notificationMsgRepository->insert($msg);
 
         // 2. Withdraw
@@ -82,12 +86,16 @@ class NotificationManagerTest extends EventDbTestCase
         $this->assertEquals(NotificationMsgStatus::Draft, $updatedMsg->status);
     }
 
+    // #################################
+    // Sending
+    // #################################
+
     public function testSend_SendOk()
     {
         $TEXT = "HELLO";
         // 1. Prepare Data
         $msg = $this->createTestEventWithMsg('Test Patient', $TEXT, NotificationMsgStatus::Scheduled, new DateTime('-1 hour'));
-        
+
         // 2. Setup Mock
         $mockCallCount = 0;
         $this->smsGwService->handler = function ($urlPath, $postData) use (&$mockCallCount, $TEXT) {
@@ -110,11 +118,12 @@ class NotificationManagerTest extends EventDbTestCase
         $attempts = $this->notificationAttemptRepository->listByMsgId($msg->id);
         $this->assertCount(1, $attempts);
         $updatedAttempt = $attempts[0];
-        
+
         $this->assertEquals(NotificationAttemptStatus::Sent, $updatedAttempt->status);
         $this->assertEquals(12345, $updatedAttempt->gwId);
         $this->assertEquals('queued', $updatedAttempt->gwSendStatus);
         $this->assertNotNull($updatedAttempt->sentAt);
+        $this->assertEquals($updatedAttempt->checkAt, $updatedAttempt->sentAt);
 
         $updatedMsg = $this->notificationMsgRepository->getById($msg->id);
         $this->assertEquals(NotificationMsgStatus::Sent, $updatedMsg->status);
@@ -141,10 +150,14 @@ class NotificationManagerTest extends EventDbTestCase
 
         $updatedMsg = $this->notificationMsgRepository->getById($msg->id);
         $this->assertEquals(NotificationMsgStatus::Scheduled, $updatedMsg->status);
-        
+
         // Check rescheduled future time
         $this->assertGreaterThan(time(), $updatedMsg->scheduledAt->getTimestamp());
     }
+
+    // #################################
+    // Checking Status
+    // #################################
 
     public function testCheckStatusOfSentNotifications_SchedulesNextMessage()
     {
@@ -156,7 +169,7 @@ class NotificationManagerTest extends EventDbTestCase
         $msg2 = $this->createNotificationMsg($msg1->eventId, 2, MediaType::Image, "", NotificationMsgStatus::Draft, new DateTime('-1 hour'));
         $this->notificationMsgRepository->insert($msg2);
 
-        $attempt1 = $this->createTestAttempt($msg1, NotificationAttemptStatus::Sent, null, $GW_ID);
+        $attempt1 = $this->createTestAttempt($msg1, NotificationAttemptStatus::Sent, $GW_ID);
 
         // 2. Setup Mock
         $this->smsGwService->handler = function ($urlPath) use ($GW_ID): Maybe {
@@ -183,13 +196,52 @@ class NotificationManagerTest extends EventDbTestCase
         $this->assertEquals(NotificationMsgStatus::Scheduled, $updatedMsg2->status);
     }
 
+    public function testCheckStatusOfSentNotifications_SchedulesMultipleNextMessages()
+    {
+        $GW_ID = 12345;
+
+        // 1. Prepare Data
+        $msg1 = $this->createTestEventWithMsg('Parallel Check', 'Msg 1', NotificationMsgStatus::Sent, new DateTime('-1 hour'));
+        
+        // Create TWO messages with index 2
+        $msg2a = $this->createNotificationMsg($msg1->eventId, 2, MediaType::Text, "Msg 2a", NotificationMsgStatus::Draft, new DateTime('-1 hour'));
+        $this->notificationMsgRepository->insert($msg2a);
+        
+        $msg2b = $this->createNotificationMsg($msg1->eventId, 2, MediaType::Text, "Msg 2b", NotificationMsgStatus::Draft, new DateTime('-1 hour'));
+        $this->notificationMsgRepository->insert($msg2b);
+
+        $this->createTestAttempt($msg1, NotificationAttemptStatus::Sent, $GW_ID);
+
+        // 2. Setup Mock
+        $this->smsGwService->handler = function ($urlPath) use ($GW_ID): Maybe {
+            return Maybe::success([
+                (object) [
+                    'status' => 'delivery_ok',
+                    'error_code' => null,
+                    'sending_date' => '2023-01-01 10:00:00',
+                    'delivery_date' => '2023-01-01 10:01:00'
+                ]
+            ]);
+        };
+
+        // 3. Execute
+        $this->notificationManager->checkStatusOfSentNotifications();
+
+        // 4. Verify
+        $this->assertEquals(NotificationMsgStatus::Delivered, $this->notificationMsgRepository->getById($msg1->id)->status);
+
+        // BOTH should be Scheduled
+        $this->assertEquals(NotificationMsgStatus::Scheduled, $this->notificationMsgRepository->getById($msg2a->id)->status);
+        $this->assertEquals(NotificationMsgStatus::Scheduled, $this->notificationMsgRepository->getById($msg2b->id)->status);
+    }
+
     public function testCheckStatus_GwSendFailure_ReschedulesMsg()
     {
         $GW_ID = 12345;
 
         // 1. Prepare Data
         $msg = $this->createTestEventWithMsg('Patient Check', 'Msg 1', NotificationMsgStatus::Sent, new DateTime('-1 hour'));
-        $this->createTestAttempt($msg, NotificationAttemptStatus::Sent, null, $GW_ID);
+        $this->createTestAttempt($msg, NotificationAttemptStatus::Sent, $GW_ID);
 
         // 2. Setup Mock
         $this->smsGwService->handler = fn() => Maybe::success([
@@ -220,10 +272,10 @@ class NotificationManagerTest extends EventDbTestCase
     {
         // 1. Prepare Data
         $msg1 = $this->createTestEventWithMsg('Patient Check 2', 'Msg 2', NotificationMsgStatus::Sent, new DateTime('-1 hour'));
-        $attempt = $this->createTestAttempt($msg1, NotificationAttemptStatus::Sent, null, 2357);
+        $attempt = $this->createTestAttempt($msg1, NotificationAttemptStatus::Sent, 2357);
 
         // 2. Setup Mock
-        $this->smsGwService->handler = fn():Maybe => Maybe::success((object) ['message' => "Resource(s) not found"]);
+        $this->smsGwService->handler = fn(): Maybe => Maybe::success((object) ['message' => "Resource(s) not found"]);
 
         // 3. Execute
         $this->notificationManager->checkStatusOfSentNotifications();
@@ -238,10 +290,10 @@ class NotificationManagerTest extends EventDbTestCase
     {
         // 1. Prepare Data
         $msg1 = $this->createTestEventWithMsg('Patient Check 2', 'Msg 2', NotificationMsgStatus::Sent, new DateTime('-1 hour'));
-        $attempt = $this->createTestAttempt($msg1, NotificationAttemptStatus::Sent, null, 2357);
+        $attempt = $this->createTestAttempt($msg1, NotificationAttemptStatus::Sent, 2357);
 
         // 2. Setup Mock
-        $this->smsGwService->handler = fn():Maybe => Maybe::success("WTF");
+        $this->smsGwService->handler = fn(): Maybe => Maybe::success("WTF");
 
         // 3. Execute
         $this->notificationManager->checkStatusOfSentNotifications();
@@ -253,9 +305,87 @@ class NotificationManagerTest extends EventDbTestCase
         $this->assertStringContainsString('Unexpected response: "WTF"', $updatedAttempt->checkError);
     }
 
-    //
+    public function testCheck_Reserved_ReschedulesCheck()
+    {
+        $GW_ID = 12345;
+
+        // 1. Prepare Data
+        $msg = $this->createTestEventWithMsg('Reserved Patient', 'Msg 1', NotificationMsgStatus::Sent, new DateTime('-1 hour'));
+        // createTestAttempt already sets checkAt to "now" which is eligible for listToCheck()
+        $attempt = $this->createTestAttempt($msg, NotificationAttemptStatus::Sent, $GW_ID);
+
+        // 2. Setup Mock
+        $this->smsGwService->handler = fn() => Maybe::success([
+            (object) [
+                'status' => 'reserved',
+                'error_code' => null,
+                'sending_date' => '2023-01-01 10:00:00',
+                'delivery_date' => null,
+            ]
+        ]);
+
+        // 3. Execute
+        $this->notificationManager->checkStatusOfSentNotifications();
+
+        // 4. Verify
+        $updatedAttempt = $this->notificationAttemptRepository->getById($attempt->id);
+
+        // Status should be Queued (as per MsgCheckResponseHandler logic for reschedule)
+        $this->assertEquals(NotificationAttemptStatus::Queued, $updatedAttempt->status);
+
+        // check_at should be in the future (1 minute later for the first check)
+        $this->assertMaxTimeDiffInSeconds(new DateTime('+1 minutes'), $updatedAttempt->checkAt, 10);
+
+        // gw_check_status_history should contain "reserved"
+        $this->assertEquals('reserved', $updatedAttempt->gwCheckStatusHistory);
+
+        // NotificationMsg should still be Sent
+        $updatedMsg = $this->notificationMsgRepository->getById($msg->id);
+        $this->assertEquals(NotificationMsgStatus::Sent, $updatedMsg->status);
+    }
+
+    public function testCheck_Reserved_ReschedulesCheck_SecondTime()
+    {
+        $GW_ID = 12345;
+
+        // 1. Prepare Data
+        $msg = $this->createTestEventWithMsg('Reserved Patient 2', 'Msg 1', NotificationMsgStatus::Sent, new DateTime('-1 hour'));
+
+        $attempt = $this->createTestAttempt($msg, NotificationAttemptStatus::Sent, $GW_ID);
+
+        // We need to set history so determineCheckNo returns 2
+        $this->database->table('notification_attempt')
+            ->where('id', $attempt->id)
+            ->update(['gw_check_status_history' => 'reserved']);
+
+        // 2. Setup Mock
+        $this->smsGwService->handler = fn() => Maybe::success([
+            (object) [
+                'status' => 'reserved',
+                'error_code' => null,
+                'sending_date' => '2023-01-01 10:00:00',
+                'delivery_date' => null,
+            ]
+        ]);
+
+        // 3. Execute
+        $this->notificationManager->checkStatusOfSentNotifications();
+
+        // 4. Verify
+        $updatedAttempt = $this->notificationAttemptRepository->getById($attempt->id);
+
+        $this->assertEquals(NotificationAttemptStatus::Queued, $updatedAttempt->status);
+
+        // check_at should be in the future (around 2 minutes later)
+        $this->assertMaxTimeDiffInSeconds(new DateTime('+2 minutes'), $updatedAttempt->checkAt, 10);
+
+        // gw_check_status_history should contain "reserved,reserved"
+        $this->assertEquals('reserved,reserved', $updatedAttempt->gwCheckStatusHistory);
+    }
+
+    // #################################
     // Helpers
-    //
+    // #################################
 
     private function assertMaxTimeDiffInSeconds(DateTime $expected, DateTime $actual, int $maxDiffSeconds, ?string $msg = null): void
     {

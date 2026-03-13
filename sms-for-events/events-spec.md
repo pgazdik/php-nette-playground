@@ -40,6 +40,4 @@ $this->logInfo("SMS_GW_URL: " . getenv('SMS_GW_URL'));
 $this->logInfo("SMS_GW_TOKEN: " . getenv('SMS_GW_TOKEN'));
 ```
 
-I am working on a PHP app using Nette framework.
-
 This is a PHP app using Nette framework. Let's focus on the Event part, there is code to create Events, now I want to extend it with notifications. I have already created Entities in the app/Model/Event. First step, extend the migration script that already exists and create tables for the new entities.

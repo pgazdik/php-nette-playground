@@ -22,7 +22,7 @@ class EventManager
     public function createEvent(Event $event): void
     {
         // 1. Create Event
-        $eventId = $this->eventRepository->insert($event);
+        $this->eventRepository->insert($event);
 
         // 2. Calculate scheduledAt
         // Logic: 7 days before appointment. If appointment is within 7 days, scheduledAt = now.
@@ -45,7 +45,7 @@ class EventManager
         );
 
         $notificationMsg = new NotificationMsg(
-            eventId: $eventId,
+            eventId: $event->id,
             msgIndex: 1,
             notificationType: NotificationType::Main,
             mediaType: MediaType::Text,
@@ -59,7 +59,7 @@ class EventManager
         // 4. Create Image Notification if attachment exists
         if ($event->attachmentContent !== null) {
             $imageMsg = new NotificationMsg(
-                eventId: $eventId,
+                eventId: $event->id,
                 msgIndex: 2,
                 notificationType: NotificationType::Main,
                 mediaType: MediaType::Image,

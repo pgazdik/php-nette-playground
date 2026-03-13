@@ -81,23 +81,23 @@ class EventDbTestCase extends DbTestCase
     protected function createTestEventWithMsg(string $patientName, string $text, NotificationMsgStatus $status, ?DateTime $scheduledAt = null): NotificationMsg
     {
         $event = $this->createTestEvent($patientName);
-        $eventId = $this->eventRepository->insert($event);
+        $this->eventRepository->insert($event);
 
-        $msg = $this->createNotificationMsg($eventId, 1, MediaType::Text, $text, $status, $scheduledAt ?? new DateTime());
+        $msg = $this->createNotificationMsg($event->id, 1, MediaType::Text, $text, $status, $scheduledAt ?? new DateTime());
         $this->notificationMsgRepository->insert($msg);
 
         return $msg;
     }
 
-    protected function createTestAttempt(NotificationMsg $msg, NotificationAttemptStatus $status, ?DateTime $scheduledAt = null, ?int $gwId = null): NotificationAttempt
+    protected function createTestAttempt(NotificationMsg $msg, NotificationAttemptStatus $status, ?int $gwId = null, ?DateTime $checkAt = null): NotificationAttempt
     {
         $attempt = new NotificationAttempt(
             notificationMsgId: $msg->id,
             attemptNo: 1,
-            scheduledAt: $scheduledAt ?? $msg->scheduledAt,
             status: $status,
             gwId: $gwId,
-            msg: $msg
+            msg: $msg,
+            checkAt: $checkAt ?? new DateTime()
         );
         $this->notificationAttemptRepository->insert($attempt);
         return $attempt;

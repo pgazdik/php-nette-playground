@@ -32,6 +32,8 @@ class EventRepositoryTest extends EventDbTestCase
 
         $this->eventRepository->insert($event);
 
+        $this->assertNotNull($event->id);
+
         // 2. Fetch and verify the event
         $fetchedEvent = $this->fetchSingleEvent();
 

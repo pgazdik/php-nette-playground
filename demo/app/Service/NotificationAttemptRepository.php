@@ -33,9 +33,10 @@ class NotificationAttemptRepository
         $row = $this->database->table('notification_attempt')->insert([
             'notification_msg_id' => $attempt->notificationMsgId,
             'attempt_no' => $attempt->attemptNo,
-            'scheduled_at' => DateUtils::baToUtc($attempt->scheduledAt),
             'status' => $attempt->status->value,
             'sending_error' => $attempt->sendingError,
+            'sent_at' => $attempt->sentAt,
+            'check_at' => $attempt->checkAt,
             'gw_id' => $attempt->gwId,
             'gw_send_status' => $attempt->gwSendStatus,
             'gw_check_status' => $attempt->gwCheckStatus,
@@ -50,7 +51,9 @@ class NotificationAttemptRepository
     public function update(
         NotificationAttempt $attempt,
         NotificationAttemptStatus $newStatus,
+        DateTime $checkAt,
         string $gwCheckStatus,
+        string $gwCheckStatusHistory,
         ?int $gwErrorCode,
         ?DateTime $gwSendDate,
         ?DateTime $gwDeliveryDate
@@ -60,7 +63,9 @@ class NotificationAttemptRepository
             ->where('id', $attempt->id)
             ->update([
                 'status' => $newStatus->value,
+                'check_at' => $checkAt,
                 'gw_check_status' => $gwCheckStatus,
+                'gw_check_status_history' => $gwCheckStatusHistory,
                 'gw_error_code' => $gwErrorCode,
                 'gw_send_date' => $gwSendDate,
                 'gw_delivery_date' => $gwDeliveryDate,
@@ -94,6 +99,7 @@ class NotificationAttemptRepository
     {
         $rows = $this->database->table('notification_attempt')
             ->where('status IN ?', AppUtils::toEnumValues(NotificationAttemptStatus::checkSupportingStatuses()))
+            ->where('check_at <= NOW()')
             ->fetchAll();
 
         return self::toNotificationAttempts($rows, true);
@@ -160,14 +166,15 @@ class NotificationAttemptRepository
             id: $row->id,
             notificationMsgId: $row->notification_msg_id,
             attemptNo: $row->attempt_no,
-            scheduledAt: DateUtils::utcToBa($row->scheduled_at),
             status: NotificationAttemptStatus::from($row->status),
             sentAt: $row->sent_at ? DateUtils::utcToBa($row->sent_at) : null,
+            checkAt: $row->check_at ? DateUtils::utcToBa($row->check_at) : null,
             sendingError: $row->sending_error,
             checkError: $row->check_error,
             gwId: $row->gw_id,
             gwSendStatus: $row->gw_send_status,
             gwCheckStatus: $row->gw_check_status,
+            gwCheckStatusHistory: $row->gw_check_status_history,
             gwErrorCode: $row->gw_error_code ? (int) $row->gw_error_code : null,
             gwSendDate: $row->gw_send_date,
             gwDeliveryDate: $row->gw_delivery_date,
@@ -184,13 +191,15 @@ class NotificationAttemptRepository
     public function noteMessageSent(NotificationAttempt $attempt, int $gwId, string $gwStatus): void
     {
         $now = new DateTime();
+        $nowUtc = DateUtils::baToUtc($now);
         $this->database->table('notification_attempt')
             ->where('id', $attempt->id)
             ->update([
                 'status' => NotificationAttemptStatus::Sent->value,
                 'gw_id' => $gwId,
                 'gw_send_status' => $gwStatus,
-                'sent_at' => DateUtils::baToUtc($now),
+                'sent_at' => $nowUtc,
+                'check_at'=> $nowUtc,
             ]);
 
         // Update the attempt object to reflect the changes
@@ -198,6 +207,7 @@ class NotificationAttemptRepository
         $attempt->gwId = $gwId;
         $attempt->gwSendStatus = $gwStatus;
         $attempt->sentAt = $now;
+        $attempt->checkAt = $now; // checking is immediately available
     }
 
     public function noteMessageSendError(NotificationAttempt $attempt, string $error): void

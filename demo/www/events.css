@@ -107,6 +107,16 @@ h2 {
     font-family: inherit;
 }
 
+/* Form inputs styling */
+form input[type="text"],
+form input[type="datetime-local"],
+form select,
+form textarea {
+    width: 200px;
+    box-sizing: border-box;
+}
+
+
 
 /* Status Highlighting */
 :root {

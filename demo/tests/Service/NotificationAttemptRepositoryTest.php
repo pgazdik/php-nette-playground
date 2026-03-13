@@ -19,16 +19,15 @@ class NotificationAttemptRepositoryTest extends EventDbTestCase
 
         // Create Event 1 with 1 Message, 1 Failed Attempt
         $event = $this->createTestEvent('Event 1', new DateTime('+1 day'));
-        $eventId1 = $this->eventRepository->insert($event);
+        $this->eventRepository->insert($event);
 
-        $msg = $this->createTextNotificationMsg($eventId1, 1, "Msg", NotificationMsgStatus::Scheduled, $pastDate);
+        $msg = $this->createTextNotificationMsg($event->id, 1, "Msg", NotificationMsgStatus::Scheduled, $pastDate);
         $this->notificationMsgRepository->insert($msg);
 
         // First attempt (failed)
         $firstAttempt = new NotificationAttempt(
             notificationMsgId: $msg->id,
             attemptNo: 1,
-            scheduledAt: $pastDate,
             status: NotificationAttemptStatus::Failed
         );
         $this->notificationAttemptRepository->insert($firstAttempt);
@@ -41,7 +40,6 @@ class NotificationAttemptRepositoryTest extends EventDbTestCase
         $secondAttempt = new NotificationAttempt(
             notificationMsgId: $msg->id,
             attemptNo: 2,
-            scheduledAt: $pastDate,
             status: NotificationAttemptStatus::Failed
         );
         $this->notificationAttemptRepository->insert($secondAttempt);
@@ -50,6 +48,5 @@ class NotificationAttemptRepositoryTest extends EventDbTestCase
         $nextAttemptNo = $this->notificationAttemptRepository->getNextAttemptNo($msg->id);
         $this->assertEquals(3, $nextAttemptNo);
     }
-
 
 }

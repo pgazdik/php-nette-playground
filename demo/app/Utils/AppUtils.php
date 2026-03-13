@@ -1,7 +1,6 @@
 <?php
 namespace App\Utils;
 
-
 class AppUtils
 {
 
