@@ -12,8 +12,10 @@ class NotificationMsg
         public NotificationType $notificationType,
         public MediaType $mediaType,
         public NotificationMsgStatus $status,
-        public string $text,
         public DateTime $scheduledAt,
+
+        public string $text,
+        public ?string $filePath = null,
 
         public ?DateTime $approvedAt = null,
 

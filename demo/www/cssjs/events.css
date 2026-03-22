@@ -94,6 +94,14 @@ h2 {
     background-color: #333;
 }
 
+.btn-delete {
+    background-color: #e63537;
+}
+
+.btn-delete:hover {
+    background-color: #c0392b;
+}
+
 .text-muted {
     color: #6c757d;
 }

@@ -24,15 +24,15 @@ class NotificationMsgRepositoryTest extends EventDbTestCase
         // 2. Create Notifications
 
         // To Approve: New / Text
-        $targetMsg = $this->createNotificationMsg($event->id, 1, MediaType::Text, 'Target Message', NotificationMsgStatus::Draft);
+        $targetMsg = $this->createTextNotificationMsg($event->id, 1, 'Target Message', NotificationMsgStatus::Draft);
         $this->notificationMsgRepository->insert($targetMsg);
 
         // Ignored: New / Image
-        $imageMsg = $this->createNotificationMsg($event->id, 2, MediaType::Image, '', NotificationMsgStatus::Draft);
+        $imageMsg = $this->createImageNotificationMsg($event->id, 2, '', NotificationMsgStatus::Draft);
         $this->notificationMsgRepository->insert($imageMsg);
 
         // Ignored: Scheduled / Text
-        $scheduledMsg = $this->createNotificationMsg($event->id, 1, MediaType::Text, 'Scheduled Message', NotificationMsgStatus::Scheduled);
+        $scheduledMsg = $this->createTextNotificationMsg($event->id, 1, 'Scheduled Message', NotificationMsgStatus::Scheduled);
         $this->notificationMsgRepository->insert($scheduledMsg);
 
         // 3. Test getToApprove
@@ -50,7 +50,7 @@ class NotificationMsgRepositoryTest extends EventDbTestCase
         $event = $this->createTestEvent('Updater', new DateTime('+1 day'));
         $this->eventRepository->insert($event);
 
-        $msg = $this->createNotificationMsg($event->id, 1, MediaType::Text, 'Original Text', NotificationMsgStatus::Draft);
+        $msg = $this->createTextNotificationMsg($event->id, 1, 'Original Text', NotificationMsgStatus::Draft);
         $this->notificationMsgRepository->insert($msg);
 
         // 2. Update Text
@@ -69,16 +69,16 @@ class NotificationMsgRepositoryTest extends EventDbTestCase
         $this->eventRepository->insert($event);
 
         // 2. Create Notifications
-        $msg1 = $this->createNotificationMsg($event->id, 1, MediaType::Text, "Msg 1", NotificationMsgStatus::Draft);
+        $msg1 = $this->createTextNotificationMsg($event->id, 1, "Msg 1", NotificationMsgStatus::Draft);
         $this->notificationMsgRepository->insert($msg1);
 
-        $msg2a = $this->createNotificationMsg($event->id, 2, MediaType::Text, "Msg 2a", NotificationMsgStatus::Draft);
+        $msg2a = $this->createTextNotificationMsg($event->id, 2, "Msg 2a", NotificationMsgStatus::Draft);
         $this->notificationMsgRepository->insert($msg2a);
 
-        $msg2b = $this->createNotificationMsg($event->id, 2, MediaType::Image, "", NotificationMsgStatus::Draft);
+        $msg2b = $this->createImageNotificationMsg($event->id, 2, "", NotificationMsgStatus::Draft);
         $this->notificationMsgRepository->insert($msg2b);
 
-        $msg3 = $this->createNotificationMsg($event->id, 3, MediaType::Text, "Msg 3", NotificationMsgStatus::Draft);
+        $msg3 = $this->createTextNotificationMsg($event->id, 3, "Msg 3", NotificationMsgStatus::Draft);
         $this->notificationMsgRepository->insert($msg3);
 
         // 3. Find next messages for Msg 1 (should return 2a and 2b)
@@ -90,5 +90,18 @@ class NotificationMsgRepositoryTest extends EventDbTestCase
         $this->assertContains($msg2b->id, $ids);
         $this->assertNotContains($msg1->id, $ids);
         $this->assertNotContains($msg3->id, $ids);
+    }
+
+    public function test_InsertWithFilePath()
+    {
+        $event = $this->createTestEvent('File Path Test');
+        $this->eventRepository->insert($event);
+
+        $filePath = 'path/to/file.jpg';
+        $msg = $this->createImageNotificationMsg($event->id, 2, $filePath, NotificationMsgStatus::Draft, new DateTime());
+        $this->notificationMsgRepository->insert($msg);
+
+        $fetched = $this->notificationMsgRepository->getById($msg->id);
+        $this->assertEquals($filePath, $fetched->filePath);
     }
 }

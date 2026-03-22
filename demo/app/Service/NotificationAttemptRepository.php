@@ -35,8 +35,8 @@ class NotificationAttemptRepository
             'attempt_no' => $attempt->attemptNo,
             'status' => $attempt->status->value,
             'sending_error' => $attempt->sendingError,
-            'sent_at' => $attempt->sentAt,
-            'check_at' => $attempt->checkAt,
+            'sent_at' => DateUtils::baToUtc($attempt->sentAt),
+            'check_at' => DateUtils::baToUtc($attempt->checkAt),
             'gw_id' => $attempt->gwId,
             'gw_send_status' => $attempt->gwSendStatus,
             'gw_check_status' => $attempt->gwCheckStatus,
@@ -63,7 +63,7 @@ class NotificationAttemptRepository
             ->where('id', $attempt->id)
             ->update([
                 'status' => $newStatus->value,
-                'check_at' => $checkAt,
+                'check_at' => DateUtils::baToUtc($checkAt),
                 'gw_check_status' => $gwCheckStatus,
                 'gw_check_status_history' => $gwCheckStatusHistory,
                 'gw_error_code' => $gwErrorCode,
@@ -182,7 +182,7 @@ class NotificationAttemptRepository
             updatedAt: DateUtils::utcToBa($row->updated_at)
         );
 
-        if ($withMsg)
+        if ($withMsg && $row->notification_msg)
             $result->msg = NotificationMsgRepository::toNotificationMsg($row->notification_msg);
 
         return $result;
@@ -190,7 +190,7 @@ class NotificationAttemptRepository
 
     public function noteMessageSent(NotificationAttempt $attempt, int $gwId, string $gwStatus): void
     {
-        $now = new DateTime();
+        $now = DateUtils::nowBaDate();
         $nowUtc = DateUtils::baToUtc($now);
         $this->database->table('notification_attempt')
             ->where('id', $attempt->id)
@@ -199,7 +199,7 @@ class NotificationAttemptRepository
                 'gw_id' => $gwId,
                 'gw_send_status' => $gwStatus,
                 'sent_at' => $nowUtc,
-                'check_at'=> $nowUtc,
+                'check_at' => $nowUtc,
             ]);
 
         // Update the attempt object to reflect the changes

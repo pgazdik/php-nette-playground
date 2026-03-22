@@ -2,6 +2,10 @@
 namespace App\Presentation\Event;
 
 use App\Model\Entity\Event\Event;
+use App\Model\Entity\Event\NotificationMsg;
+use App\Model\Entity\Event\NotificationType;
+use App\Model\Entity\Event\NotificationMsgStatus;
+use App\Model\Entity\Event\MediaType;
 use App\Service\EventRepository;
 use App\Service\EventManager;
 use App\Service\NotificationMsgRepository;
@@ -54,10 +58,6 @@ class EventPresenter extends BaseEventPresenter
             ->setHtmlAttribute('type', 'datetime-local')
             ->setRequired('Please enter the appointment date.');
 
-        $form->addUpload('attachment', 'Attachment (Image):')
-            ->addRule($form::MimeType, 'Image must be JPEG or PNG.', ['image/jpeg', 'image/png'])
-            ->addRule($form::MaxFileSize, 'Maximum size is 1 MB.', 1024 * 1024);
-
         $form->addSubmit('create', 'Create Event');
 
         $form->onSuccess[] = [$this, 'eventFormSucceeded'];
@@ -67,45 +67,34 @@ class EventPresenter extends BaseEventPresenter
 
     public function eventFormSucceeded(Form $form, array $data): void
     {
-        $attachment = $data['attachment'];
-        $attachmentName = null;
-        $attachmentType = null;
-        $attachmentContent = null;
-
-        if ($attachment->hasFile()) {
-            if (!$attachment->isOk()) {
-                $this->flashMessage('Attachment upload failed.', 'msg_error');
-                $this->redirect('this');
-                return;
-            }
-            $attachmentName = $attachment->getUntrustedName(); // Simple for now, maybe sanitize like SmsPresenter
-            $attachmentType = $attachment->getContentType();
-            $attachmentContent = $attachment->getContents();
-        }
-
         $event = new Event(
             patientName: $data['patientName'],
             phoneNumber: $data['phoneNumber'],
             doctorName: $data['doctorName'],
             doctorAddress: $data['doctorAddress'],
             appointmentDate: DateUtils::newBaDate($data['appointmentDate']),
-            attachmentContent: $attachmentContent,
-            attachmentName: $attachmentName,
-            attachmentType: $attachmentType
         );
 
-        $this->eventManager->createEvent($event);
+        $result = $this->eventManager->createEvent($event);
 
-        $this->flashMessage('Event successfully created!', 'msg_success');
+        if (!$result->isSuccess) {
+            $this->flashMessage($result->error, 'msg_error');
+
+        } else if ($result->warning) {
+            $this->flashMessage($result->warning, 'msg_warning');
+        } else {
+            $this->flashMessage('Event successfully created!', 'msg_success');
+        }
+
         $this->redirect('this');
     }
 
     public function renderShow(int $id): void
     {
-        $event = $this->eventRepository->getByIdWithImage($id);
+        $event = $this->eventRepository->getById($id);
         if (!$event) {
-        $this->flashMessage('Event not found!', 'msg_error');
-        $this->redirect('default');
+            $this->flashMessage('Event not found!', 'msg_error');
+            $this->redirect('default');
         }
 
         $this->template->event = $event;
@@ -117,6 +106,35 @@ class EventPresenter extends BaseEventPresenter
             $attempts[$msg->id] = $this->notificationAttemptRepository->listLatestByMsgId($msg->id, 10);
         }
         $this->template->attempts = $attempts;
+
+        $this->template->unusedImages = $this->eventManager->identifyUnusedImages($event, $notifications);
+    }
+
+    public function handleUpdateNotifications(int $id): void
+    {
+        $toDelete = $this->getHttpRequest()->getPost('delete') ?: [];
+        $toAdd = $this->getHttpRequest()->getPost('add') ?: [];
+
+        $event = $this->eventRepository->getById($id);
+        $mainMsg = $this->notificationMsgRepository->getMainTextMessage($id);
+
+        if (!$event || !$mainMsg) {
+            $this->flashMessage('Event or Main message not found!', 'msg_error');
+            $this->redirect('this');
+        }
+
+        if (!in_array($mainMsg->status, [NotificationMsgStatus::Draft, NotificationMsgStatus::Scheduled])) {
+            $this->flashMessage('Cannot add notifications to a published event!', 'msg_error');
+            $this->redirect('this');
+        }
+
+        $this->eventManager->updateImageNotifications($event, $mainMsg->scheduledAt, $toDelete, $toAdd);
+
+        if (!empty($toDelete) || !empty($toAdd)) {
+            $this->flashMessage('Image notifications updated.', 'msg_success');
+        }
+
+        $this->redirect('this');
     }
 
 }

@@ -8,11 +8,8 @@
             <th>ID</th>
             <th>Event ID</th>
             <th>Type</th>
-            <th>Media</th>
-            <th>Status</th>
             <th>Text</th>
             <th>Send At</th>
-            <th>Created</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -23,8 +20,6 @@
                 <td class="status-cell">{$notification->id}</td>
                 <td><a n:href="Event:show, id => $notification->eventId">{$notification->eventId}</a></td>
                 <td>{$notification->notificationType->value}</td>
-                <td>{$notification->mediaType->value}</td>
-                <td><span class="pill">{$notification->status->value}</span></td>
                 <td>
                     <span id="text-view-{$notification->id}">{$notification->text}</span>
                     <div id="text-edit-{$notification->id}" style="display:none;">
@@ -37,7 +32,6 @@
                         {input $container['scheduledAt'], class => 'edit-textarea'}
                     </div>
                 </td>
-                <td>{$notification->createdAt|date:'d.m.y H:i'}</td>
                 <td>
                     <button type="button" id="btn-edit-{$notification->id}" onclick="toggleEdit({$notification->id})" class="btn btn-normal">Edit</button>
                     <a n:href="approve! id => $notification->id" id="btn-important-{$notification->id}" class="btn btn-important">Approve</a>

@@ -30,12 +30,9 @@ class EventManagerTest extends EventDbTestCase
         $event = new Event(
             patientName: 'Integration Tester',
             phoneNumber: '+421900000000',
-            doctorName: 'Dr. Integration',
+            doctorName: 'pepper',
             doctorAddress: 'Test Lab 1',
-            appointmentDate: $appointmentDate,
-            attachmentContent: 'fake-image-data',
-            attachmentName: 'test.jpg',
-            attachmentType: 'image/jpeg'
+            appointmentDate: $appointmentDate
         );
 
         // 2. Call the Manager
@@ -47,27 +44,30 @@ class EventManagerTest extends EventDbTestCase
         $this->assertEquals('Integration Tester', $event->patientName);
 
         // 4. Verify Notifications in DB
-        // We expect 2 notifications: 1 Main/Text and 1 Main/Image (since we provided attachment)
+        // We expect 2 notifications: 1 Main/Text and 1 Main/Image (from _media/pepper/dr-pepper.jpg)
         $notifications = $this->database->table('notification_msg')
             ->where('event_id', $event->id)
-            ->order('id ASC')
+            ->order('msg_index ASC, id ASC')
             ->fetchAll();
 
         $this->assertCount(2, $notifications, 'Should create 2 notifications');
 
+        $notifications = array_values($notifications);
+
         // Verify Text Notification
-        $textMsg = $notifications[1];
+        $textMsg = $notifications[0];
         $this->assertEquals(1, $textMsg->msg_index);
         $this->assertEquals(NotificationType::Main->value, $textMsg->notification_type);
         $this->assertEquals(MediaType::Text->value, $textMsg->media_type);
         $this->assertStringContainsString('Integration Tester', $textMsg->text);
 
         // Verify Image Notification
-        $imageMsg = $notifications[2];
+        $imageMsg = $notifications[1];
         $this->assertEquals(2, $imageMsg->msg_index);
         $this->assertEquals(NotificationType::Main->value, $imageMsg->notification_type);
         $this->assertEquals(MediaType::Image->value, $imageMsg->media_type);
         $this->assertEquals('', $imageMsg->text);
+        $this->assertEquals('pepper/dr-pepper.jpg', $imageMsg->file_path);
 
         // Verify Scheduling Logic
         // Expected scheduledAt is 7 days before appointment

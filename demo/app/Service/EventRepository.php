@@ -9,25 +9,15 @@ use Nette\Database\Table\ActiveRow;
 
 class EventRepository
 {
-    private static string $ALL_COLUMNS_EXCEPT_ATTACHMENT_CONTENT = 'id, patient_name, phone_number, doctor_name, doctor_address, appointment_date, attachment_name, attachment_type, created_at, updated_at';
-
     public function __construct(
         private Explorer $database
     ) {
     }
 
-    public function getByIdWithImage(int $eventId): ?Event
+    public function getById(int $eventId): ?Event
     {
         $row = $this->database->table('event')->get($eventId);
-        return $row ? $this->toEvent($row) : null;
-    }
-
-    public function getByIdNoImage(int $eventId): ?Event
-    {
-        $row = $this->database->table('event')
-            ->select($this::$ALL_COLUMNS_EXCEPT_ATTACHMENT_CONTENT)
-            ->get($eventId);
-        return $row ? $this->toEvent($row) : null;
+        return $row ? self::toEvent($row) : null;
     }
 
     public function insert(Event $event): void
@@ -38,9 +28,6 @@ class EventRepository
             'doctor_name' => $event->doctorName,
             'doctor_address' => $event->doctorAddress,
             'appointment_date' => DateUtils::baToUtc($event->appointmentDate),
-            'attachment_content' => $event->attachmentContent,
-            'attachment_name' => $event->attachmentName,
-            'attachment_type' => $event->attachmentType
         ]);
 
         $event->id = $row->id;
@@ -50,13 +37,12 @@ class EventRepository
     public function listAll(): array
     {
         $rows = $this->database->table('event')
-            ->select($this::$ALL_COLUMNS_EXCEPT_ATTACHMENT_CONTENT)
             ->order('appointment_date ASC')
             ->fetchAll();
 
         $events = [];
         foreach ($rows as $row) {
-            $events[] = $this->toEvent($row);
+            $events[] = self::toEvent($row);
         }
         return $events;
     }
@@ -69,9 +55,6 @@ class EventRepository
             doctorName: $row->doctor_name,
             doctorAddress: $row->doctor_address,
             appointmentDate: DateUtils::utcToBa($row->appointment_date),
-            attachmentContent: $row->attachment_content ?? null,
-            attachmentName: $row->attachment_name,
-            attachmentType: $row->attachment_type,
             id: $row->id,
             createdAt: DateUtils::utcToBa($row->created_at),
             updatedAt: DateUtils::utcToBa($row->updated_at),

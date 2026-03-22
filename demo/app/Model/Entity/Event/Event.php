@@ -11,9 +11,6 @@ class Event
         public string $doctorName,
         public string $doctorAddress,
         public DateTime $appointmentDate,
-        public ?string $attachmentContent,
-        public ?string $attachmentName,
-        public ?string $attachmentType,
 
         public ?int $id = null,
         public ?DateTime $createdAt = null,

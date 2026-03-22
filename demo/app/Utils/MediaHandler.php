@@ -12,6 +12,11 @@ class MediaHandler
     ) {
     }
 
+    public function resolvePath(string $path): string
+    {
+        return $this->rootDir . '/' . $path;
+    }
+
     /** @return string[] */
     public function listDirNames(): array
     {

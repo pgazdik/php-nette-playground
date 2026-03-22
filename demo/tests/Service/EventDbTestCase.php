@@ -1,6 +1,7 @@
 <?php
 namespace Tests\Service;
 
+use App\Utils\DateUtils;
 use DateTime;
 
 use App\Model\Entity\Event\Event;
@@ -69,12 +70,12 @@ class EventDbTestCase extends DbTestCase
 
     protected function createTestEvent(string $patientName, ?DateTime $appointmentDate = null): Event
     {
-        return $this->createTestEventWithAttachment(
-            $patientName,
-            $appointmentDate ?? new DateTime('+1 day'),
-            null,
-            null,
-            null
+        return new Event(
+            patientName: $patientName,
+            phoneNumber: self::$PHONE_NUMBER,
+            doctorName: self::$DOCTOR_NAME,
+            doctorAddress: self::$DOCTOR_ADDRESS,
+            appointmentDate: $appointmentDate ?? new DateTime('+1 day'),
         );
     }
 
@@ -83,7 +84,7 @@ class EventDbTestCase extends DbTestCase
         $event = $this->createTestEvent($patientName);
         $this->eventRepository->insert($event);
 
-        $msg = $this->createNotificationMsg($event->id, 1, MediaType::Text, $text, $status, $scheduledAt ?? new DateTime());
+        $msg = $this->createTextNotificationMsg($event->id, 1, $text, $status, $scheduledAt ?? new DateTime());
         $this->notificationMsgRepository->insert($msg);
 
         return $msg;
@@ -97,29 +98,10 @@ class EventDbTestCase extends DbTestCase
             status: $status,
             gwId: $gwId,
             msg: $msg,
-            checkAt: $checkAt ?? new DateTime()
+            checkAt: $checkAt ?? DateUtils::nowBaDate()
         );
         $this->notificationAttemptRepository->insert($attempt);
         return $attempt;
-    }
-
-    protected function createTestEventWithAttachment(
-        string $patientName,
-        DateTime $appointmentDate,
-        ?string $attachmentContent,
-        ?string $attachmentName,
-        ?string $attachmentType
-    ): Event {
-        return new Event(
-            patientName: $patientName,
-            phoneNumber: self::$PHONE_NUMBER,
-            doctorName: self::$DOCTOR_NAME,
-            doctorAddress: self::$DOCTOR_ADDRESS,
-            appointmentDate: $appointmentDate,
-            attachmentContent: $attachmentContent,
-            attachmentName: $attachmentName,
-            attachmentType: $attachmentType
-        );
     }
 
     protected function createTextNotificationMsg(int $eventId, int $index, string $text, NotificationMsgStatus $status, DateTime $scheduledAt = new DateTime()): NotificationMsg
@@ -127,7 +109,12 @@ class EventDbTestCase extends DbTestCase
         return $this->createNotificationMsg($eventId, $index, MediaType::Text, $text, $status, $scheduledAt);
     }
 
-    protected function createNotificationMsg(int $eventId, int $index, MediaType $mediaType, string $text, NotificationMsgStatus $status, DateTime $scheduledAt = new DateTime()): NotificationMsg
+    protected function createImageNotificationMsg(int $eventId, int $index, string $filePath, NotificationMsgStatus $status, DateTime $scheduledAt = new DateTime()): NotificationMsg
+    {
+        return $this->createNotificationMsg($eventId, $index, MediaType::Image, "", $status, $scheduledAt, $filePath);
+    }
+
+    protected function createNotificationMsg(int $eventId, int $index, MediaType $mediaType, string $text, NotificationMsgStatus $status, DateTime $scheduledAt = new DateTime(), ?string $filePath = null): NotificationMsg
     {
         return new NotificationMsg(
             eventId: $eventId,
@@ -135,6 +122,7 @@ class EventDbTestCase extends DbTestCase
             mediaType: $mediaType,
             status: $status,
             text: $text,
+            filePath: $filePath,
             scheduledAt: $scheduledAt,
             msgIndex: $index,
         );

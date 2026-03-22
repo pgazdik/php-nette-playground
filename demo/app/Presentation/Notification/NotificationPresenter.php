@@ -7,10 +7,12 @@ use App\Service\NotificationAttemptRepository;
 use App\Service\NotificationManager;
 use App\Utils\DateUtils;
 use App\Utils\DebuggerUtils;
+use App\Utils\MediaHandler;
 use Nette\Application\UI\Form;
 
 use Exception;
 use Nette;
+use function PHPUnit\Framework\callback;
 
 class NotificationPresenter extends BaseEventPresenter
 {
@@ -24,36 +26,62 @@ class NotificationPresenter extends BaseEventPresenter
     public function __construct(
         private NotificationMsgRepository $notificationMsgRepository,
         private NotificationAttemptRepository $notificationAttemptRepository,
-        private NotificationManager $notificationManager
+        private NotificationManager $notificationManager,
+        private MediaHandler $mediaHandler,
     ) {
+    }
+
+    public function actionServeImage(int $notificationId): void
+    {
+        $msg = $this->notificationMsgRepository->getById($notificationId);
+
+        if (!$msg || !$msg->filePath) {
+            throw new Nette\Application\BadRequestException('Notification or file path not found.');
+        }
+
+        $fullPath = $this->mediaHandler->resolvePath($msg->filePath);
+
+        if (!file_exists($fullPath)) {
+            throw new Nette\Application\BadRequestException('Image file not found.');
+        }
+
+        $this->sendResponse(new Nette\Application\Responses\FileResponse($fullPath));
+    }
+
+    public function actionServeImageByPath(string $path, string $doctorName): void
+    {
+        // Security check: path must start with doctorName
+        if (!str_starts_with($path, $doctorName . '/')) {
+            throw new Nette\Application\BadRequestException('Invalid image path for this doctor.');
+        }
+
+        $fullPath = $this->mediaHandler->resolvePath($path);
+
+        if (!file_exists($fullPath) || !is_file($fullPath)) {
+            throw new Nette\Application\BadRequestException('Image file not found.');
+        }
+
+        $this->sendResponse(new Nette\Application\Responses\FileResponse($fullPath));
     }
 
     public function beforeRender(): void
     {
         parent::beforeRender();
         $this->setLayout('eventlayout');
+        $this->template->countToApprove = $this->notificationMsgRepository->getCountToApprove();
     }
 
     public function renderDefault(): void
     {
-        $count = $this->notificationMsgRepository->getCount();
-        $lastPage = (int) ceil($count / self::PAGE_SIZE);
-        if ($lastPage === 0) {
-            $lastPage = 1;
-        }
-
-        $this->page = max(1, min($this->page, $lastPage));
-        $offset = ($this->page - 1) * self::PAGE_SIZE;
-
-        $this->template->notifications = $this->notificationMsgRepository->getAll(self::PAGE_SIZE, $offset);
-        $this->template->page = $this->page;
-        $this->template->lastPage = $lastPage;
+        $this->preparePaginatedContent(
+            fn() => $this->notificationMsgRepository->getCount(),
+            fn($size, $offset) => $this->notificationMsgRepository->getAll($size, $offset)
+        );
     }
 
     //
     // To Approve
     //
-
 
     // Prepares data ($notificationsForForm) for both renderToApprove and createComponentApproveForm
     public function actionToApprove(): void
@@ -75,8 +103,6 @@ class NotificationPresenter extends BaseEventPresenter
 
     public function renderToApprove(): void
     {
-        // Re-calculate lastPage for the template (redundant but safe) or store in property.
-        // For now, let's just pass the data we fetched in action.
         $count = $this->notificationMsgRepository->getCountToApprove();
         $lastPage = (int) ceil($count / self::PAGE_SIZE);
         if ($lastPage === 0) {
@@ -97,7 +123,7 @@ class NotificationPresenter extends BaseEventPresenter
             $container = $notificationsContainer->addContainer($notification->id);
             $container->addTextArea('text')
                 ->setDefaultValue($notification->text);
-            
+
             $container->addText('scheduledAt')
                 ->setHtmlAttribute('type', 'datetime-local')
                 ->setDefaultValue($notification->scheduledAt->format('Y-m-d\TH:i'));
@@ -143,7 +169,26 @@ class NotificationPresenter extends BaseEventPresenter
     //
     public function renderScheduled(): void
     {
-        $count = $this->notificationMsgRepository->getCountScheduled();
+        [$notificationMsgs] = $this->preparePaginatedContent(
+            fn() => $this->notificationMsgRepository->getCountScheduledOrSent(),
+            fn($pageSize, $offset) => $this->notificationMsgRepository->getScheduledOrSent($pageSize, $offset)
+        );
+
+        $msgIds = array_map(fn($n) => $n->id, $notificationMsgs);
+        $this->template->activeAttempts = $this->notificationAttemptRepository->getActiveAttemptsMap($msgIds);
+    }
+
+    public function renderFailed(): void
+    {
+        $this->preparePaginatedContent(
+            fn() => $this->notificationMsgRepository->getCountFailed(),
+            fn($pageSize, $offset) => $this->notificationMsgRepository->getFailed($pageSize, $offset)
+        );
+    }
+
+    private function preparePaginatedContent(callable $countFn, callable $listFn): array
+    {
+        $count = $countFn();
         $lastPage = (int) ceil($count / self::PAGE_SIZE);
         if ($lastPage === 0) {
             $lastPage = 1;
@@ -152,14 +197,13 @@ class NotificationPresenter extends BaseEventPresenter
         $this->page = max(1, min($this->page, $lastPage));
         $offset = ($this->page - 1) * self::PAGE_SIZE;
 
-        $notificationMsgs = $this->notificationMsgRepository->getScheduled(self::PAGE_SIZE, $offset);
+        $notificationMsgs = $listFn(self::PAGE_SIZE, $offset);
         $this->template->notificationMsgs = $notificationMsgs;
-        
-        $msgIds = array_map(fn($n) => $n->id, $notificationMsgs);
-        $this->template->activeAttempts = $this->notificationAttemptRepository->getActiveAttemptsMap($msgIds);
 
         $this->template->page = $this->page;
         $this->template->lastPage = $lastPage;
+
+        return [$notificationMsgs];
     }
 
     public function handleSend(int $msgId): void

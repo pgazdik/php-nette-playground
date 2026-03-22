@@ -10,6 +10,11 @@ enum NotificationMsgStatus: string
     case Delivered = 'delivered';
     case Failed = 'failed';
 
+    public function supportsUpdate(): bool
+    {
+        return in_array($this, self::updateSupportingStatuses());
+    }
+
     public function toColor(): StatusColor
     {
         return match ($this) {
@@ -20,4 +25,10 @@ enum NotificationMsgStatus: string
             self::Failed => StatusColor::Red,
         };
     }
+
+    public static function updateSupportingStatuses(): array
+    {
+        return [self::Draft, self::Scheduled];
+    }
+
 }

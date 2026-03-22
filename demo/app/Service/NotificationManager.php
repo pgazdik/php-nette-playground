@@ -10,6 +10,7 @@ use App\Model\Entity\Event\NotificationMsgStatus;
 use App\Service\MsgCheck\MsgCheckNextStepType;
 use App\Service\MsgCheck\MsgCheckResponse;
 use App\Service\MsgCheck\MsgCheckResponseHandler;
+use App\Utils\MediaHandler;
 use Nette\Database\Explorer;
 use Tracy\Debugger;
 
@@ -27,6 +28,7 @@ class NotificationManager
         private SmsGwService $smsGwService,
         private LockService $lockService,
         private MsgCheckResponseHandler $msgCheckResponseHandler,
+        private MediaHandler $mediaHandler,
     ) {
     }
 
@@ -119,11 +121,11 @@ class NotificationManager
     {
         Debugger::log("Sending notification, attempt no.{$attempt->attemptNo} id: {$attempt->id}", "info");
 
-        [$event, $text, $attachements] = $this->prepareMessageInputs($msg);
+        [$event, $text, $attachements, $error] = $this->prepareMessageInputs($msg);
 
-        if (!$event) {
+        if ($error) {
             // Unexpected
-            Debugger::log("Cannot send notification, event with id {$msg->eventId} not found. NotificationMsg id: {$msg->id}");
+            Debugger::log("Cannot send notification for event with id {$msg->eventId}, NotificationMsg id: {$msg->id}. Reason: ". $error);
             $this->notificationAttemptRepository->noteMessageSendError($attempt, "Event not found");
             $this->notificationMsgRepository->updateStatus($msg->id, NotificationMsgStatus::Failed);
             return;
@@ -166,24 +168,28 @@ class NotificationManager
 
     private function prepareMessageInputs(NotificationMsg $msg): array
     {
-        if ($msg->mediaType === MediaType::Text) {
-            $event = $this->eventRepository->getByIdNoImage($msg->eventId);
+        $event = $this->eventRepository->getById($msg->eventId);
+        if (!$event)
+            return [null, null, null, "Event not found!"];
 
-            return [$event, $msg->text, []];
+        if ($msg->mediaType === MediaType::Text) {
+            return [$event, $msg->text, [], null];
 
         } else { // Image
-            $event = $this->eventRepository->getByIdWithImage($msg->eventId);
+            if (!$msg->filePath)
+                return [null, null, [], "Image path not set!"];
 
-            if (!$event)
-                return [null, null, []];
+            $fullPath = $this->mediaHandler->resolvePath($msg->filePath);
+            if (!file_exists($fullPath))
+                return [null, null, [], "Image not found!"];
 
             $attachements[] = [
-                "content_type" => $event->attachmentType,
-                "content" => base64_encode($event->attachmentContent),
+                "content_type" => mime_content_type($fullPath),
+                "content" => base64_encode(file_get_contents($fullPath)),
             ];
 
             // Text cannot be null
-            return [$event, "", $attachements];
+            return [$event, "", $attachements, null];
         }
     }
 
@@ -290,6 +296,8 @@ class NotificationManager
         } else if ($nextStep->type === MsgCheckNextStepType::ResendMessage) {
             Debugger::log("Notification attempt # {$attempt->id} failed and will be rescheduled. Response: " . json_encode($response));
             $this->rescheduleMessage($attempt->msg, $nextStep->resendDelayInMin);
+        } else if ($nextStep->type === MsgCheckNextStepType::SendEmail) {
+            $this->notificationMsgRepository->updateStatus($attempt->notificationMsgId, NotificationMsgStatus::Failed);
         }
     }
 

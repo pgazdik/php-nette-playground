@@ -2,3 +2,5 @@ services:
 	# Override the original service
 	smsGwService:
 		create: Tests\Service\SmsGwMockService
+	mediaHandler:
+		create: App\Utils\MediaHandler(%appDir%/../tests/_media)

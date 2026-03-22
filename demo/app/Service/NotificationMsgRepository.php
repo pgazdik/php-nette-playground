@@ -5,6 +5,7 @@ use App\Model\Entity\Event\MediaType;
 use App\Model\Entity\Event\NotificationMsg;
 use App\Model\Entity\Event\NotificationMsgStatus;
 use App\Model\Entity\Event\NotificationType;
+use App\Utils\AppUtils;
 use App\Utils\DateUtils;
 use Nette\Database\Explorer;
 use Nette\Database\IRow;
@@ -26,6 +27,7 @@ class NotificationMsgRepository
             'media_type' => $msg->mediaType->value,
             'status' => $msg->status->value,
             'text' => $msg->text,
+            'file_path' => $msg->filePath,
             'scheduled_at' => DateUtils::baToUtc($msg->scheduledAt),
         ]);
 
@@ -109,6 +111,17 @@ class NotificationMsgRepository
             ->update(['status' => NotificationMsgStatus::Draft->value]);
     }
 
+    public function delete(int $id): void
+    {
+        $this->database->table('notification_attempt')
+            ->where('notification_msg_id', $id)
+            ->delete();
+
+        $this->database->table('notification_msg')
+            ->where('id', $id)
+            ->delete();
+    }
+
     public function getById(int $id): ?NotificationMsg
     {
         $row = $this->database->table('notification_msg')->get($id);
@@ -139,12 +152,48 @@ class NotificationMsgRepository
         return $this->getCountByStatus(NotificationMsgStatus::Scheduled);
     }
 
+    public function getCountScheduledOrSent(): int
+    {
+        return $this->database->table('notification_msg')
+            ->where('status IN ?', AppUtils::toEnumValues([NotificationMsgStatus::Scheduled, NotificationMsgStatus::Sent]))
+            ->count('*');
+    }
+
+    public function getCountFailed(): int
+    {
+        return $this->getCountByStatus(NotificationMsgStatus::Failed);
+    }
+
     /** @return NotificationMsg[] */
     public function getScheduled(int $limit, int $offset): array
     {
         $rows = $this->database->table('notification_msg')
             ->where('status', NotificationMsgStatus::Scheduled->value)
             ->order('scheduled_at ASC')
+            ->limit($limit, $offset)
+            ->fetchAll();
+
+        return self::rowsToNotificationMsgs($rows);
+    }
+
+    /** @return NotificationMsg[] */
+    public function getScheduledOrSent(int $limit, int $offset): array
+    {
+        $rows = $this->database->table('notification_msg')
+            ->where('status IN ?', AppUtils::toEnumValues([NotificationMsgStatus::Scheduled, NotificationMsgStatus::Sent]))
+            ->order('scheduled_at ASC')
+            ->limit($limit, $offset)
+            ->fetchAll();
+
+        return self::rowsToNotificationMsgs($rows);
+    }
+
+    /** @return NotificationMsg[] */
+    public function getFailed(int $limit, int $offset): array
+    {
+        $rows = $this->database->table('notification_msg')
+            ->where('status', NotificationMsgStatus::Failed->value)
+            ->order('updated_at DESC')
             ->limit($limit, $offset)
             ->fetchAll();
 
@@ -179,6 +228,25 @@ class NotificationMsgRepository
     }
 
     /** @return NotificationMsg[] */
+    public function getMainTextMessage(int $eventId): ?NotificationMsg
+    {
+        $row = $this->database->table('notification_msg')
+            ->where('event_id', $eventId)
+            ->where('notification_type', NotificationType::Main->value)
+            ->where('media_type', MediaType::Text->value)
+            ->fetch();
+
+        return $row ? self::toNotificationMsg($row) : null;
+    }
+
+    public function existsByEventIdAndFilePath(int $eventId, string $filePath): bool
+    {
+        return $this->database->table('notification_msg')
+            ->where('event_id', $eventId)
+            ->where('file_path', $filePath)
+            ->count('*') > 0;
+    }
+
     public function getAllByEventId(int $eventId): array
     {
         $rows = $this->database->table('notification_msg')
@@ -212,6 +280,7 @@ class NotificationMsgRepository
             notificationType: NotificationType::from($row->notification_type),
             status: NotificationMsgStatus::from($row->status),
             text: $row->text,
+            filePath: $row->file_path,
             scheduledAt: DateUtils::utcToBa($row->scheduled_at),
             approvedAt: $row->approved_at ? DateUtils::utcToBa($row->approved_at) : null,
             id: $row->id,

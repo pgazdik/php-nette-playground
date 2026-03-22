@@ -25,9 +25,6 @@ class EventRepositoryTest extends EventDbTestCase
             doctorName: 'Dr. House',
             doctorAddress: 'Princeton-Plainsboro',
             appointmentDate: $appointmentDate,
-            attachmentContent: 'fake-image-content',
-            attachmentName: 'scan.jpg',
-            attachmentType: 'image/jpeg'
         );
 
         $this->eventRepository->insert($event);
@@ -41,12 +38,7 @@ class EventRepositoryTest extends EventDbTestCase
         $this->assertEquals('+1234567890', $fetchedEvent->phoneNumber);
         $this->assertEquals('Dr. House', $fetchedEvent->doctorName);
         $this->assertEquals('Princeton-Plainsboro', $fetchedEvent->doctorAddress);
-        $this->assertEquals('scan.jpg', $fetchedEvent->attachmentName);
-        $this->assertEquals('image/jpeg', $fetchedEvent->attachmentType);
         
-        // Note: getAll() does not select attachment_content by design (for performance)
-        $this->assertNull($fetchedEvent->attachmentContent); 
-
         // Check Date Equality (comparing timestamps or formatted strings to avoid object identity issues)
         $this->assertEquals(
             $appointmentDate->format('Y-m-d H:i:s'), 

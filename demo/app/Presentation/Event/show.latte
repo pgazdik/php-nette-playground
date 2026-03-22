@@ -10,85 +10,245 @@
     <p><strong>Doctor Address:</strong> {$event->doctorAddress}</p>
 </div>
 
-<h2>Notifications</h2>
+<form action="{link updateNotifications! id => $event->id}" method="post" id="notification-form">
+    <h2>Notifications</h2>
 
-{if count($notifications) === 0}
-    <p>No notifications found for this event.</p>
-{else}
-    {foreach $notifications as $msg}
-        <div n:class="notification-block, 'status-' . $msg->status->toColor()->value">
-            <h3 class="status-cell" style="padding-left: 10px;">#{$msg->id} - <span class="pill">{$msg->status->value}</span></h3>
-            {if $msg->text}
-                <p><strong>Text:</strong> {$msg->text}</p>
-            {else}
-                <p>
-                {if $event->attachmentContent}
-                    <img src="data:{$event->attachmentType|noescape};base64,{base64_encode($event->attachmentContent)|noescape}" style="max-width: 300px; border: 1px solid #ccc;">
-                {else}
-                    <span class="text-muted">No image content available.</span>
-                {/if}
-                </p>
-            {/if}
-            <p><strong>Scheduled:</strong> {$msg->scheduledAt|date:'d.m.y H:i'}</p>
-
-            {if $attempts[$msg->id]}
-                <table class="data-table nomargin">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Status</th>
-                            <th>Scheduled</th>
-                            <th>Sent</th>
-                            <th>GW ID</th>
-                            <th>GW Send Status</th>
-                            <th>GW Check Status</th>
-                            <th>GW Send</th>
-                            <th>GW Delivery</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {foreach $attempts[$msg->id] as $attempt}
-                            <tr n:class="'status-' . $attempt->status->toColor()->value, $attempt->sendingError || $attempt->checkError ? 'error-follows'">
-                                <td class="status-cell">{$attempt->attemptNo}</td>
-                                <td><span class="pill">{$attempt->status->value}</span></td>
-                                <td>{$attempt->scheduledAt|date:'d.m.y H:i'}</td>
-                                <td>{$attempt->sentAt|date:'d.m.y H:i'}</td>
-                                <td>{$attempt->gwId}</td>
-                                <td>{$attempt->gwSendStatus}</td>
-                                <td>{$attempt->gwCheckStatus}</td>
-                                <td>{if $attempt->gwSendDate}{$attempt->gwSendDate|date:'d.m.y H:i:s'}{else}-{/if}</td>
-                                <td>{if $attempt->gwDeliveryDate}{$attempt->gwDeliveryDate|date:'d.m.y H:i:s'}{else}-{/if}</td>
-                            </tr>
-                            {if $attempt->sendingError}
-                            <tr n:class="'status-' . $attempt->status->toColor()->value">
-                                <td class="status-cell" ></td>
-                                <td colspan="99"><strong>Sending Error:</strong>{$attempt->sendingError}</td>
-                            </tr>
-                            {elseif $attempt->checkError}
-                            <tr n:class="'status-' . $attempt->status->toColor()->value">
-                                <td class="status-cell" ></td>
-                                <td colspan="99"><strong>Check Error:</strong>{$attempt->checkError}</td>
-                            </tr>
+    {if count($notifications) === 0}
+        <p>No notifications found for this event.</p>
+    {else}
+        {foreach $notifications as $msg}
+            <div n:class="notification-block, 'status-' . $msg->status->toColor()->value" id="notification-{$msg->id}">
+               <div style="display: flex; justify-content: space-between;">
+                    <div style="display: flex">
+                        <div>
+                            <h3 class="status-cell" style="padding-left: 10px;">#{$msg->id} - <span class="pill">{$msg->status->value}</span></h3>
+                            {if $msg->text}
+                                <p><strong>Text:</strong> {$msg->text}</p>
+                            {elseif !$msg->filePath}
+                                <p><span class="text-muted">No content available.</span></p>
                             {/if}
-                        {/foreach}
-                    </tbody>
-                </table>
-            {/if}
-        </div>
-        <hr>
-    {/foreach}
-{/if}
+                            <p><strong>Scheduled:</strong> {$msg->scheduledAt|date:'d.m.y H:i'}</p>
+                        </div>
+                        {if $msg->filePath}
+                            <div style="margin-left:50px">
+                                <img src="{link Notification:serveImage, notificationId => $msg->id}" 
+                                     style="max-width: 150px; max-height:150px; border: 1px solid #ccc; cursor: pointer;"
+                                     onclick="showFullImage(this.src)" 
+                                     alt="Click to view full size">
+                            </div>
+                        {/if}
+                    </div>
+                    <div class="action-checkbox-container">
+                        {if $msg->mediaType->isImage() && $msg->status->supportsUpdate()}
+                            <label class="checkbox-wrapper delete-wrapper">
+                                <input type="checkbox" name="delete[]" value="{$msg->id}" onchange="toggleSelection(this, 'notification-{$msg->id}', 'to-delete')">
+                                <span class="checkmark"></span>
+                            </label>
+                        {/if}
+                    </div>
+                </div>
 
-<a n:href="default" class="btn btn-cancel">Back to List</a>
+                {if $attempts[$msg->id]}
+                    <table class="data-table nomargin">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Status</th>
+                                <th>Sent</th>
+                                <th>Check</th>
+                                <th>GW ID</th>
+                                <th>GW Send Status</th>
+                                <th>GW Check Status</th>
+                                <th>GW Send</th>
+                                <th>GW Delivery</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {foreach $attempts[$msg->id] as $attempt}
+                                <tr n:class="'status-' . $attempt->status->toColor()->value, $attempt->sendingError || $attempt->checkError ? 'error-follows'">
+                                    <td class="status-cell">{$attempt->attemptNo}</td>
+                                    <td><span class="pill">{$attempt->status->value}</span></td>
+                                    <td>{$attempt->sentAt|date:'d.m.y H:i'}</td>
+                                    <td>{$attempt->checkAt|date:'d.m.y H:i'}</td>
+                                    <td>{$attempt->gwId}</td>
+                                    <td>{$attempt->gwSendStatus}</td>
+                                    <td>{$attempt->gwCheckStatus}</td>
+                                    <td>{if $attempt->gwSendDate}{$attempt->gwSendDate|date:'d.m.y H:i:s'}{else}-{/if}</td>
+                                    <td>{if $attempt->gwDeliveryDate}{$attempt->gwDeliveryDate|date:'d.m.y H:i:s'}{else}-{/if}</td>
+                                </tr>
+                                {if $attempt->sendingError}
+                                <tr n:class="'status-' . $attempt->status->toColor()->value">
+                                    <td class="status-cell" ></td>
+                                    <td colspan="99"><strong>Sending Error:</strong>{$attempt->sendingError}</td>
+                                </tr>
+                                {elseif $attempt->checkError}
+                                <tr n:class="'status-' . $attempt->status->toColor()->value">
+                                    <td class="status-cell" ></td>
+                                    <td colspan="99"><strong>Check Error:</strong>{$attempt->checkError}</td>
+                                </tr>
+                                {/if}
+                            {/foreach}
+                        </tbody>
+                    </table>
+                {/if}
+            </div>
+            <hr>
+        {/foreach}
+    {/if}
+
+    {if count($unusedImages) > 0}
+        <div class="unused-images-container">
+            <h4>Add more images</h4>
+            <div class="image-tiles">
+                {foreach $unusedImages as $path}
+                    <div class="notification-block image-tile" id="unused-tile-{$iterator->counter}">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center;">
+                                <img src="{link Notification:serveImageByPath, path => $path, doctorName => $event->doctorName}" 
+                                     alt="Preview" 
+                                     style="max-width: 150px; max-height: 150px; border: 1px solid #ddd; cursor:pointer"
+                                     onclick="showFullImage(this.src)">
+                            </div>
+                            <div class="action-checkbox-container">
+                                <label class="checkbox-wrapper add-wrapper">
+                                    <input type="checkbox" name="add[]" value="{$path}" onchange="toggleSelection(this, 'unused-tile-{$iterator->counter}', 'to-add')">
+                                    <span class="checkmark"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                {/foreach}
+            </div>
+        </div>
+    {/if}
+
+    <div style="margin-top: 50px; display: flex; align-items: center;">
+        <a n:href="default" class="btn btn-cancel">Back to List</a>
+        <button type="submit" class="btn btn-important" id="update-btn" style="display: none; margin-left: 15px;">Update</button>
+    </div>
+</form>
 
 <style>
-    .event-details p {
-        margin: 5px 0;
+    .checkbox-wrapper {
+        display: block;
+        position: relative;
+        padding-left: 35px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        font-size: 22px;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
     }
-    .notification-block {
-        margin-top: 0;
+
+    .checkbox-wrapper input {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+        height: 0;
+        width: 0;
+    }
+
+    .checkmark {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 25px;
+        width: 25px;
+        background-color: #eee;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .checkbox-wrapper:hover input ~ .checkmark {
+        background-color: #ccc;
+    }
+
+    /* Green Tick for Add */
+    .add-wrapper input:checked ~ .checkmark {
+        background-color: #2ecc71;
+        border-color: #27ae60;
+    }
+
+    .add-wrapper .checkmark:after {
+        content: "";
+        position: absolute;
+        display: none;
+        left: 9px;
+        top: 5px;
+        width: 5px;
+        height: 10px;
+        border: solid white;
+        border-width: 0 3px 3px 0;
+        -webkit-transform: rotate(45deg);
+        -ms-transform: rotate(45deg);
+        transform: rotate(45deg);
+    }
+
+    .add-wrapper input:checked ~ .checkmark:after {
+        display: block;
+    }
+
+    /* Red Cross for Delete */
+    .delete-wrapper input:checked ~ .checkmark {
+        background-color: #e74c3c;
+        border-color: #c0392b;
+    }
+
+    .delete-wrapper .checkmark:after {
+        content: "\2715";
+        position: absolute;
+        display: none;
+        left: 5px;
+        top: -2px;
+        color: white;
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+    .delete-wrapper input:checked ~ .checkmark:after {
+        display: block;
+    }
+
+    /* Highlights */
+    .to-delete {
+        border: 2px solid #e74c3c !important;
+        background-color: #fdf2f2 !important;
+    }
+
+    .to-add {
+        border: 2px solid #2ecc71 !important;
+        background-color: #f2fdf5 !important;
+    }
+    
+    .action-checkbox-container {
         padding: 10px;
-        background-color: #f9f9f9;
-        border: 1px solid #eee;
+        display: flex;
+        align-items: center;
     }
 </style>
+
+<script>
+function toggleSelection(checkbox, elementId, className) {
+    const element = document.getElementById(elementId);
+    if (checkbox.checked) {
+        element.classList.add(className);
+    } else {
+        element.classList.remove(className);
+    }
+    toggleUpdateButton();
+}
+
+function toggleUpdateButton() {
+    const form = document.getElementById('notification-form');
+    const checkboxes = form.querySelectorAll('input[type="checkbox"]:checked');
+    const updateBtn = document.getElementById('update-btn');
+    
+    if (checkboxes.length > 0) {
+        updateBtn.style.display = 'inline-block';
+    } else {
+        updateBtn.style.display = 'none';
+    }
+}
+</script>

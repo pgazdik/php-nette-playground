@@ -1,5 +1,5 @@
 {block content}
-<h1>Scheduled Notifications</h1>
+<h1>Failed Notifications</h1>
 
 <table class="data-table">
     <thead>
@@ -10,6 +10,7 @@
             <th>Status</th>
             <th>Text</th>
             <th>Send At</th>
+            <th>Last Update</th>
             <th>Action</th>
         </tr>
     </thead>
@@ -22,20 +23,9 @@
                 <td><span class="pill">{$notificationMsg->status->value}</span></td>
                 <td title="{$notificationMsg->text}">{$notificationMsg->text|truncate:50}</td>
                 <td>{$notificationMsg->scheduledAt|date:'d.m.y H:i'}</td>
+                <td>{$notificationMsg->updatedAt|date:'d.m.y H:i'}</td>
                 <td>
-                    {if isset($activeAttempts[$notificationMsg->id])}
-                        {var $attempt = $activeAttempts[$notificationMsg->id]}
-                        {if $attempt->status->supportsCheck()}
-                            <a n:href="checkStatus! attemptId => $attempt->id" class="btn btn-normal">Check</a>
-                        {else}
-                            <span class="text-muted">{$attempt->status->value}</span>
-                        {/if}
-                    {elseif $notificationMsg->status->value === 'scheduled'}
-                        <a n:href="withdraw! msgId => $notificationMsg->id" class="btn btn-normal">Withdraw</a>
-                        <a n:href="send! msgId => $notificationMsg->id" class="btn btn-important">Send</a>
-                    {else}
-                        <span class="text-muted">-</span>
-                    {/if}
+                    <a n:href="send! msgId => $notificationMsg->id" class="btn btn-important">Send</a>
                 </td>
             </tr>
         {/foreach}
@@ -44,13 +34,12 @@
 
 <div class="pagination">
     {if $page > 1}
-        <a n:href="scheduled, page => $page - 1">Previous</a>
+        <a n:href="failed, page => $page - 1">Previous</a>
     {/if}
 
     <span>Page {$page} of {$lastPage}</span>
 
     {if $page < $lastPage}
-        <a n:href="scheduled, page => $page + 1">Next</a>
+        <a n:href="failed, page => $page + 1">Next</a>
     {/if}
 </div>
-

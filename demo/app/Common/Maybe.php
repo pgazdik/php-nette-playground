@@ -1,13 +1,20 @@
 <?php
 namespace App\Common;
 
+/**
+ * @template TValue
+ * @template TError
+ */
 class Maybe
 {
 
     private function __construct(
         public readonly bool $isSuccess,
+        /** @var TValue|null */
         public readonly mixed $value,
-        public readonly ?string $error
+        /** @var TError|null */
+        public readonly mixed $error = null,
+        public readonly ?string $warning = null
     ) {
     }
 
@@ -19,7 +26,18 @@ class Maybe
      */
     public static function success(mixed $value): Maybe
     {
-        return new self(true, $value, null);
+        return new self(true, $value);
+    }
+
+    /**
+     * Creates a success Result with a warning.
+     * @template TValue
+     * @param TValue $value
+     * @return Maybe<TValue, string>
+     */
+    public static function successWithWarning(mixed $value, string $warning): Maybe
+    {
+        return new self(true, $value, null, $warning);
     }
 
     /**
@@ -35,9 +53,6 @@ class Maybe
 
     /**
      * Executes a callback if the result is successful, passing the value.
-     * @template TValue
-     * @param callable(TValue): void $callback
-     * @return $this
      */
     public function onSuccess(callable $callback): self
     {
@@ -49,9 +64,6 @@ class Maybe
 
     /**
      * Executes a callback if the result is an error, passing the error.
-     * @template TError
-     * @param callable(TError): void $callback
-     * @return $this
      */
     public function onError(callable $callback): self
     {
@@ -60,4 +72,13 @@ class Maybe
         }
         return $this;
     }
+
+    public function onWarning(callable $callback): self
+    {
+        if ($this->warning !== null) {
+            $callback($this->warning);
+        }
+        return $this;
+    }
+
 }

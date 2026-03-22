@@ -9,6 +9,7 @@ use App\Model\Entity\Event\NotificationMsgStatus;
 use App\Service\NotificationManager;
 use App\Service\SmsGwService;
 use Tests\Service\SmsGwMockService;
+use Tracy\Debugger;
 
 class NotificationManagerTest extends EventDbTestCase
 {
@@ -35,17 +36,17 @@ class NotificationManagerTest extends EventDbTestCase
         $event1 = $this->createTestEvent('Event 1', new DateTime('+1 day'));
         $this->eventRepository->insert($event1);
 
-        $msg1_1 = $this->createNotificationMsg($event1->id, 1, MediaType::Text, "E1 Text", NotificationMsgStatus::Draft);
+        $msg1_1 = $this->createTextNotificationMsg($event1->id, 1, "E1 Text", NotificationMsgStatus::Draft);
         $this->notificationMsgRepository->insert($msg1_1);
 
-        $msg1_2 = $this->createNotificationMsg($event1->id, 2, MediaType::Image, "", NotificationMsgStatus::Draft);
+        $msg1_2 = $this->createImageNotificationMsg($event1->id, 2, "", NotificationMsgStatus::Draft);
         $this->notificationMsgRepository->insert($msg1_2);
 
         // 2. Create Event 2 with 1 notification (Control)
         $event2 = $this->createTestEvent('Event 2', new DateTime('+1 day'));
         $this->eventRepository->insert($event2);
 
-        $msg2_1 = $this->createNotificationMsg($event2->id, 1, MediaType::Text, "E2 Text", NotificationMsgStatus::Draft);
+        $msg2_1 = $this->createTextNotificationMsg($event2->id, 1, "E2 Text", NotificationMsgStatus::Draft);
         $this->notificationMsgRepository->insert($msg2_1);
 
         // 3. Approve (Schedule) Event 1
@@ -155,6 +156,45 @@ class NotificationManagerTest extends EventDbTestCase
         $this->assertGreaterThan(time(), $updatedMsg->scheduledAt->getTimestamp());
     }
 
+    public function testSend_SendImageOk()
+    {
+        $FILE_PATH = "pepper/dr-pepper.jpg";
+        // 1. Prepare Data
+        $event = $this->createTestEvent('Image Patient');
+        $this->eventRepository->insert($event);
+
+        $msg = $this->createImageNotificationMsg(
+            $event->id,
+            2,
+            $FILE_PATH,
+            NotificationMsgStatus::Scheduled,
+            new DateTime('-1 hour')
+        );
+        $this->notificationMsgRepository->insert($msg);
+
+        // 2. Setup Mock
+        $mockCallCount = 0;
+        $this->smsGwService->handler = function ($urlPath, $postData) use (&$mockCallCount) {
+            $mockCallCount++;
+            $this->assertEquals(NotificationManager::$MMS_PATH, $urlPath);
+
+            $data = json_decode($postData, true);
+            $this->assertCount(1, $data['attachments']);
+            $this->assertEquals('image/jpeg', $data['attachments'][0]['content_type']);
+            $this->assertNotEmpty($data['attachments'][0]['content']);
+
+            return Maybe::success([(object) ['id' => 54321, 'status' => 'queued']]);
+        };
+
+        // 3. Execute
+        $this->notificationManager->sendEligibleNotifications();
+
+        // 4. Verify
+        $this->assertEquals(1, $mockCallCount);
+        $updatedMsg = $this->notificationMsgRepository->getById($msg->id);
+        $this->assertEquals(NotificationMsgStatus::Sent, $updatedMsg->status);
+    }
+
     // #################################
     // Checking Status
     // #################################
@@ -166,7 +206,7 @@ class NotificationManagerTest extends EventDbTestCase
         // 1. Prepare Data
         $msg1 = $this->createTestEventWithMsg('Patient Check', 'Msg 1', NotificationMsgStatus::Sent, new DateTime('-1 hour'));
         // Create second message as NEW (so it gets scheduled)
-        $msg2 = $this->createNotificationMsg($msg1->eventId, 2, MediaType::Image, "", NotificationMsgStatus::Draft, new DateTime('-1 hour'));
+        $msg2 = $this->createImageNotificationMsg($msg1->eventId, 2, "", NotificationMsgStatus::Draft, new DateTime('-1 hour'));
         $this->notificationMsgRepository->insert($msg2);
 
         $attempt1 = $this->createTestAttempt($msg1, NotificationAttemptStatus::Sent, $GW_ID);
@@ -188,8 +228,9 @@ class NotificationManagerTest extends EventDbTestCase
         $this->notificationManager->checkStatusOfSentNotifications();
 
         // 4. Verify
-        $attempt1 = $this->notificationAttemptRepository->getById($attempt1->id);
-        $this->assertEquals(NotificationAttemptStatus::Delivered, $attempt1->status);
+        $updatedAttempt = $this->notificationAttemptRepository->getById($attempt1->id);
+        $this->assertMaxTimeDiffInSeconds($attempt1->checkAt, $updatedAttempt->checkAt, 1);
+        $this->assertEquals(NotificationAttemptStatus::Delivered, $updatedAttempt->status);
         $this->assertEquals(NotificationMsgStatus::Delivered, $this->notificationMsgRepository->getById($msg1->id)->status);
 
         $updatedMsg2 = $this->notificationMsgRepository->getById($msg2->id);
@@ -202,12 +243,12 @@ class NotificationManagerTest extends EventDbTestCase
 
         // 1. Prepare Data
         $msg1 = $this->createTestEventWithMsg('Parallel Check', 'Msg 1', NotificationMsgStatus::Sent, new DateTime('-1 hour'));
-        
+
         // Create TWO messages with index 2
-        $msg2a = $this->createNotificationMsg($msg1->eventId, 2, MediaType::Text, "Msg 2a", NotificationMsgStatus::Draft, new DateTime('-1 hour'));
+        $msg2a = $this->createTextNotificationMsg($msg1->eventId, 2, "Msg 2a", NotificationMsgStatus::Draft, new DateTime('-1 hour'));
         $this->notificationMsgRepository->insert($msg2a);
-        
-        $msg2b = $this->createNotificationMsg($msg1->eventId, 2, MediaType::Text, "Msg 2b", NotificationMsgStatus::Draft, new DateTime('-1 hour'));
+
+        $msg2b = $this->createTextNotificationMsg($msg1->eventId, 2, "Msg 2b", NotificationMsgStatus::Draft, new DateTime('-1 hour'));
         $this->notificationMsgRepository->insert($msg2b);
 
         $this->createTestAttempt($msg1, NotificationAttemptStatus::Sent, $GW_ID);
@@ -391,7 +432,9 @@ class NotificationManagerTest extends EventDbTestCase
     {
         $diffInSeconds = abs($expected->getTimestamp() - $actual->getTimestamp());
         if (!$msg)
-            $msg = 'Time difference should be max ' . $maxDiffSeconds . ' seconds';
+            $msg = "Time difference should be max $maxDiffSeconds seconds.\n" .
+                "Expected: {$expected->format('Y-m-d H:i:s T')}\n" .
+                "Actual: {$actual->format('Y-m-d H:i:s T')}";
         $this->assertLessThanOrEqual($maxDiffSeconds, $diffInSeconds, $msg);
     }
 }

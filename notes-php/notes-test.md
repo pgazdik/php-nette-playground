@@ -49,7 +49,13 @@ class CalculatorTest extends TestCase {
 `--testdox` is optional, it will show a more readable output.
 
 #### Single Class
+> --filter CalculatorTest
+
 > docker compose exec -w //application/demo php-fpm ./vendor/bin/phpunit tests --filter CalculatorTest --testdox
 
 `--filter CalculatorTest` specifies the class name
 
+### Show warnings:
+> --display-warnings
+
+> docker compose exec -w //application/demo php-fpm ./vendor/bin/phpunit tests --testdox --display-warnings
