@@ -8,8 +8,10 @@ use App\Model\Entity\Event\MediaType;
 use App\Model\Entity\Event\NotificationMsgStatus;
 use App\Model\Entity\Event\NotificationType;
 use App\Utils\DateUtils;
+use App\Utils\EventAwareLogger;
 use App\Utils\MediaHandler;
 use DateTime;
+use Tracy\Debugger;
 
 class EventManager
 {
@@ -25,6 +27,7 @@ class EventManager
     {
         // 1. Create Event
         $this->eventRepository->insert($event);
+        EventAwareLogger::setEventId($event->id);
 
         // 2. Calculate scheduledAt
         // Logic: 7 days before appointment. If appointment is within 7 days, scheduledAt = now.
@@ -48,6 +51,7 @@ class EventManager
 
         $notificationMsg = self::createTextNotification($event, $text, $scheduledAt);
         $this->notificationMsgRepository->insert($notificationMsg);
+        Debugger::log("Created Text Notification({$notificationMsg->id}), text: {$text}");
 
         // 4. Create Image Notifications from MediaHandler
         $maybeFiles = $this->listImagesForEvent($event);
@@ -55,7 +59,7 @@ class EventManager
         if (!$maybeFiles->isSuccess || empty($maybeFiles->value))
             return Maybe::successWithWarning(null, "Only text notification created, no images found!");
 
-        foreach ($maybeFiles->value as $filePath) 
+        foreach ($maybeFiles->value as $filePath)
             $this->createAndInsertImageNotification($event, $filePath, $scheduledAt);
 
         return Maybe::success(null);
@@ -80,14 +84,13 @@ class EventManager
 
         $maybeFiles = $this->listImagesForEvent($event);
         if (!$maybeFiles->isSuccess) {
-            // TODO add log
             return [];
         }
 
         $unusedImages = [];
         $existingPaths = array_filter(array_map(fn($n) => $n->filePath, $notifications));
         foreach ($maybeFiles->value as $filePath)
-            if (!in_array($filePath, $existingPaths))
+            if (!\in_array($filePath, $existingPaths))
                 $unusedImages[] = $filePath;
 
         return $unusedImages;
@@ -113,8 +116,8 @@ class EventManager
     {
         $imageMsg = self::createImageNotification($event, $filePath, $scheduledAt);
         $this->notificationMsgRepository->insert($imageMsg);
+        Debugger::log("Created Image Notification({$imageMsg->id}), file: {$filePath}");
     }
-
 
     private static function createTextNotification(Event $event, string $text, DateTime $scheduledAt): NotificationMsg
     {

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App;
 
+use App\Utils\EventAwareLogger;
 use Nette;
 use Nette\Bootstrap\Configurator;
+use Tracy\Debugger;
 
 class Bootstrap
 {
@@ -36,6 +38,7 @@ class Bootstrap
 		// This was here by default, no idea why.
 		//$this->configurator->setDebugMode('secret@23.75.345.200'); // enable for your remote IP
 		$this->configurator->enableTracy($this->rootDir . '/log');
+		Debugger::setLogger(new EventAwareLogger($this->rootDir . '/log'));
 
 		$this->configurator->createRobotLoader()
 			->addDirectory(__DIR__)

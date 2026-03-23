@@ -10,6 +10,7 @@ use App\Utils\DebuggerUtils;
 use App\Utils\MediaHandler;
 use Nette\Application\UI\Form;
 
+use App\Utils\EventAwareLogger;
 use Exception;
 use Nette;
 use function PHPUnit\Framework\callback;
@@ -30,6 +31,10 @@ class NotificationPresenter extends BaseEventPresenter
         private MediaHandler $mediaHandler,
     ) {
     }
+
+    //
+    // Serving Images
+    //
 
     public function actionServeImage(int $notificationId): void
     {
@@ -250,6 +255,5 @@ class NotificationPresenter extends BaseEventPresenter
         }
         $this->redirect('this');
     }
-
 
 }

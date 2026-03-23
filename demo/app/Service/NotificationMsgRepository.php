@@ -10,6 +10,7 @@ use App\Utils\DateUtils;
 use Nette\Database\Explorer;
 use Nette\Database\IRow;
 use Nette\Database\Table\ActiveRow;
+use Tracy\Debugger;
 
 class NotificationMsgRepository
 {
@@ -84,6 +85,7 @@ class NotificationMsgRepository
         $this->database->table('notification_msg')
             ->where('id', $id)
             ->update(['text' => $text]);
+        Debugger::log("Updated Notification($id). New text: $text.");
     }
 
     public function rescheduleAt(int $id, \DateTime $scheduledAt): void
@@ -94,6 +96,7 @@ class NotificationMsgRepository
                 'scheduled_at' => DateUtils::baToUtc($scheduledAt),
                 'status' => NotificationMsgStatus::Scheduled->value
             ]);
+        Debugger::log("Rescheduled Notification($id) for: " . $scheduledAt->format('Y-m-d H:i:s'));
     }
 
     public function updateStatus(int $id, NotificationMsgStatus $status): void
@@ -103,23 +106,17 @@ class NotificationMsgRepository
             ->update(['status' => $status->value]);
     }
 
-    public function withdrawNotification(int $id): void
-    {
-        $this->database->table('notification_msg')
-            ->where('id', $id)
-            ->where('status', NotificationMsgStatus::Scheduled->value)
-            ->update(['status' => NotificationMsgStatus::Draft->value]);
-    }
-
     public function delete(int $id): void
     {
-        $this->database->table('notification_attempt')
+        $attempts = $this->database->table('notification_attempt')
             ->where('notification_msg_id', $id)
             ->delete();
 
         $this->database->table('notification_msg')
             ->where('id', $id)
             ->delete();
+
+        Debugger::log("Deleted Notification($id). Attempts deleted: $attempts");
     }
 
     public function getById(int $id): ?NotificationMsg
@@ -128,19 +125,24 @@ class NotificationMsgRepository
         return $row ? self::toNotificationMsg($row) : null;
     }
 
-    public function approveNotificationsForEvent(int $eventId): void
+    public function approveNotification(int $id): void
     {
         // Approve only the first available message to ensure sequential processing
-        $row = $this->database->table('notification_msg')
-            ->where('event_id', $eventId)
+        $this->database->table('notification_msg')
+            ->where('id', $id)
             ->where('status', NotificationMsgStatus::Draft ->value)
-            ->order('msg_index ASC')
-            ->limit(1)
-            ->fetch();
+            ->update(['status' => NotificationMsgStatus::Scheduled->value]);
 
-        if ($row) {
-            $row->update(['status' => NotificationMsgStatus::Scheduled->value]);
-        }
+        Debugger::log("Approved Notification($id)");
+    }
+
+    public function withdrawNotification(int $id): void
+    {
+        $this->database->table('notification_msg')
+            ->where('id', $id)
+            ->where('status', NotificationMsgStatus::Scheduled->value)
+            ->update(['status' => NotificationMsgStatus::Draft->value]);
+        Debugger::log("Withdrawn Notification($id)");
     }
 
     //

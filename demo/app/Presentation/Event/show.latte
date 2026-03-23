@@ -10,7 +10,7 @@
     <p><strong>Doctor Address:</strong> {$event->doctorAddress}</p>
 </div>
 
-<form action="{link updateNotifications! id => $event->id}" method="post" id="notification-form">
+<form action="{link updateImageNotifications! id => $event->id}" method="post" id="notification-form">
     <h2>Notifications</h2>
 
     {if count($notifications) === 0}
@@ -102,7 +102,7 @@
             <div class="image-tiles">
                 {foreach $unusedImages as $path}
                     <div class="notification-block image-tile" id="unused-tile-{$iterator->counter}">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; justify-content: space-between;">
                             <div style="display: flex; align-items: center;">
                                 <img src="{link Notification:serveImageByPath, path => $path, doctorName => $event->doctorName}" 
                                      alt="Preview" 
@@ -157,7 +157,7 @@
         height: 25px;
         width: 25px;
         background-color: #eee;
-        border: 1px solid #ccc;
+        border: 1px solid #777;
         border-radius: 4px;
     }
 
@@ -212,6 +212,10 @@
     }
 
     /* Highlights */
+    .notification-block {
+        border: 2px solid transparent;
+    }
+
     .to-delete {
         border: 2px solid #e74c3c !important;
         background-color: #fdf2f2 !important;
@@ -225,7 +229,6 @@
     .action-checkbox-container {
         padding: 10px;
         display: flex;
-        align-items: center;
     }
 </style>
 

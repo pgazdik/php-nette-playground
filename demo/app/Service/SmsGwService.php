@@ -4,13 +4,13 @@ namespace App\Service;
 use App\Common\Maybe;
 use Tracy\Debugger;
 
-
 class SmsGwService
 {
     public function __construct(
         private string $smsGwUrl,
         private string $smsGwToken
-    ) {}
+    ) {
+    }
 
     public function requestToSmsGateway($urlPath, $postData = null): Maybe
     {
@@ -54,6 +54,9 @@ class SmsGwService
             // Return the response as a string instead of echoing it
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
+            // Set timeouts to prevent blocking for too long if the gateway is down
+            // curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5); // 5 seconds to connect
+            // curl_setopt($ch, CURLOPT_TIMEOUT, 15);       // 15 seconds total execution time
 
             // Execute the cURL request
             $response = curl_exec($ch);

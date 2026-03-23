@@ -13,7 +13,7 @@ enum NotificationAttemptStatus: string
 
     public function supportsCheck(): bool
     {
-        return in_array($this, self::checkSupportingStatuses());
+        return \in_array($this, self::checkSupportingStatuses());
     }
 
     public function toColor(): StatusColor

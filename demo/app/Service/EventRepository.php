@@ -31,6 +31,7 @@ class EventRepository
         ]);
 
         $event->id = $row->id;
+        \Tracy\Debugger::log("Created new event with ID: " . $event->id);
     }
 
     /** @return Event[] */

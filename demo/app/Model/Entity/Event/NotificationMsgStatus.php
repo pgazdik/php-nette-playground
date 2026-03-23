@@ -12,7 +12,7 @@ enum NotificationMsgStatus: string
 
     public function supportsUpdate(): bool
     {
-        return in_array($this, self::updateSupportingStatuses());
+        return \in_array($this, self::updateSupportingStatuses());
     }
 
     public function toColor(): StatusColor

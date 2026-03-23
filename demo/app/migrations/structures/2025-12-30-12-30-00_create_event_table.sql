@@ -6,10 +6,6 @@ CREATE TABLE `event` (
   `doctor_address` text NOT NULL,
   `appointment_date` datetime NOT NULL,
 
-  `attachment_content` LONGBLOB NULL,
-  `attachment_name` varchar(255) NULL,
-  `attachment_type` varchar(100) NULL,
-
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -22,6 +18,8 @@ CREATE TABLE `notification_msg` (
   `notification_type` varchar(20) NOT NULL,
   `status` varchar(20) NOT NULL,
   `text` text NOT NULL,
+  `file_path` VARCHAR(1000) NULL,
+
   `scheduled_at` datetime NOT NULL,
   `approved_at` datetime NULL,
 
@@ -38,8 +36,8 @@ CREATE TABLE `notification_attempt` (
   `attempt_no` int(11) NOT NULL,
   `status` varchar(20) NOT NULL,
 
-  `scheduled_at` datetime NOT NULL,
   `sent_at` datetime NULL,
+  `check_at` datetime NULL,
 
   `sending_error` varchar(255) NULL,
   `check_error` varchar(255) NULL,
@@ -47,6 +45,7 @@ CREATE TABLE `notification_attempt` (
   `gw_id` int(11) NULL,
   `gw_send_status` varchar(255) NULL,
   `gw_check_status` varchar(255) NULL,
+  `gw_check_status_history` text NULL,
   `gw_error_code` int(11) NULL,
   `gw_send_date` datetime NULL,
   `gw_delivery_date` datetime NULL,

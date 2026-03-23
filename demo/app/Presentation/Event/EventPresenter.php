@@ -12,8 +12,10 @@ use App\Service\NotificationMsgRepository;
 use App\Service\NotificationAttemptRepository;
 use App\Presentation\BaseEventPresenter;
 use App\Utils\DateUtils;
+use App\Utils\EventAwareLogger;
 use App\Utils\MediaHandler;
 use Nette\Application\UI\Form;
+use Tracy\Debugger;
 
 class EventPresenter extends BaseEventPresenter
 {
@@ -91,6 +93,8 @@ class EventPresenter extends BaseEventPresenter
 
     public function renderShow(int $id): void
     {
+        EventAwareLogger::setEventId($id);
+
         $event = $this->eventRepository->getById($id);
         if (!$event) {
             $this->flashMessage('Event not found!', 'msg_error');
@@ -110,8 +114,11 @@ class EventPresenter extends BaseEventPresenter
         $this->template->unusedImages = $this->eventManager->identifyUnusedImages($event, $notifications);
     }
 
-    public function handleUpdateNotifications(int $id): void
+    // TODO test
+    public function handleUpdateImageNotifications(int $id): void
     {
+        EventAwareLogger::setEventId($id);
+
         $toDelete = $this->getHttpRequest()->getPost('delete') ?: [];
         $toAdd = $this->getHttpRequest()->getPost('add') ?: [];
 
@@ -123,8 +130,8 @@ class EventPresenter extends BaseEventPresenter
             $this->redirect('this');
         }
 
-        if (!in_array($mainMsg->status, [NotificationMsgStatus::Draft, NotificationMsgStatus::Scheduled])) {
-            $this->flashMessage('Cannot add notifications to a published event!', 'msg_error');
+        if (!\in_array($mainMsg->status, [NotificationMsgStatus::Draft, NotificationMsgStatus::Scheduled])) {
+            $this->flashMessage('Cannot update notifications to a published event!', 'msg_error');
             $this->redirect('this');
         }
 

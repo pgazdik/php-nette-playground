@@ -51,6 +51,7 @@ class EventDbTestCase extends DbTestCase
 
     private function initDb(): void
     {
+        // Execute Nextras migrations        
         $driver = $this->container->getByType(IDriver::class);
 
         $runner = new Runner($driver, new DevNull());
@@ -90,15 +91,15 @@ class EventDbTestCase extends DbTestCase
         return $msg;
     }
 
-    protected function createTestAttempt(NotificationMsg $msg, NotificationAttemptStatus $status, ?int $gwId = null, ?DateTime $checkAt = null): NotificationAttempt
+    protected function createTestAttempt(NotificationMsg $msg, NotificationAttemptStatus $status, int $gwId, ?int $attemptNo = 1): NotificationAttempt
     {
         $attempt = new NotificationAttempt(
             notificationMsgId: $msg->id,
-            attemptNo: 1,
+            attemptNo: $attemptNo,
             status: $status,
             gwId: $gwId,
             msg: $msg,
-            checkAt: $checkAt ?? DateUtils::nowBaDate()
+            checkAt: DateUtils::nowBaDate()
         );
         $this->notificationAttemptRepository->insert($attempt);
         return $attempt;

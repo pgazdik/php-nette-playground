@@ -4,6 +4,7 @@ namespace App\Service\MsgCheck;
 
 use App\Model\Entity\Event\NotificationAttempt;
 use App\Model\Entity\Event\NotificationAttemptStatus;
+use Tracy\Debugger;
 
 
 class MsgCheckResponseHandler
@@ -19,33 +20,40 @@ class MsgCheckResponseHandler
 
     public function determineNextStep(NotificationAttempt $attempt, MsgCheckResponse $msgResponse): MsgCheckNextStep
     {
+        $prefix = "Attempt({$attempt->id}) no. {$attempt->attemptNo} of Notification({$attempt->notificationMsgId}).";
+
         $result = new MsgCheckNextStep($attempt);
 
         if ($this->isDelivered($msgResponse)) {
             $result->newStatus = NotificationAttemptStatus::Delivered;
             $result->type = MsgCheckNextStepType::MarkDelivered;
+            Debugger::log("{$prefix} Delivery confirmed.");
 
         } else if ($this->isFailed($msgResponse)) {
             $result->newStatus = NotificationAttemptStatus::Failed;
 
             $attemptNo = $attempt->attemptNo;
-            if ($attemptNo > count(self::messageResendDelaysInMins)) {
+            if ($attemptNo > \count(self::messageResendDelaysInMins)) {
                 $result->type = MsgCheckNextStepType::SendEmail;
+                Debugger::log("{$prefix} Sending Notification failed too many times, email will be sent.");
             } else {
                 $result->type = MsgCheckNextStepType::ResendMessage;
                 $result->resendDelayInMin = self::messageResendDelaysInMins[$attemptNo - 1];
+                Debugger::log("{$prefix} Sending Notification failed, next try in {$result->resendDelayInMin} minutes.");
             }
 
         } else {
             $checkNo = $this->determineCheckNo($attempt);
-            if ($checkNo > count(self::checkRescheduleDelaysInMins)) {
+            if ($checkNo > \count(self::checkRescheduleDelaysInMins)) {
                 $result->newStatus = NotificationAttemptStatus::Failed;
                 $result->type = MsgCheckNextStepType::SendEmail;
+                Debugger::log("{$prefix} Checking status for this attempt failed too many times ($checkNo), email will be sent.");
 
             } else {
                 $result->newStatus = NotificationAttemptStatus::Queued;
                 $result->type = MsgCheckNextStepType::RescheduleCheck;
                 $result->recheckDelayInMin = self::checkRescheduleDelaysInMins[$checkNo - 1];
+                Debugger::log("{$prefix} Checking status for this attempt failed ($checkNo times), next try in {$result->recheckDelayInMin} minutes.");
             }
         }
 
@@ -62,12 +70,12 @@ class MsgCheckResponseHandler
 
     private function isDelivered(MsgCheckResponse $msgResponse): bool
     {
-        return in_array($msgResponse->status, MsgCheckResponseStatus::DeliveredStatues);
+        return \in_array($msgResponse->status, MsgCheckResponseStatus::DeliveredStatues);
     }
 
     private function isFailed(MsgCheckResponse $msgResponse): bool
     {
-        return in_array($msgResponse->status, MsgCheckResponseStatus::FailedStatues);
+        return \in_array($msgResponse->status, MsgCheckResponseStatus::FailedStatues);
     }
 
     private function determineCheckNo(NotificationAttempt $attempt): int
@@ -77,7 +85,7 @@ class MsgCheckResponseHandler
 
         // Count number of comma-separated commands in gwCheckStatusHistory and add 1
         $commands = explode(self::STATUS_HISTORY_SEPARATOR, $attempt->gwCheckStatusHistory);
-        return 1 + count($commands);
+        return 1 + \count($commands);
     }
 
 }
