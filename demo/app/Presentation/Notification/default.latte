@@ -9,22 +9,32 @@
             <th>Type</th>
             <th>Media</th>
             <th>Status</th>
-            <th>Text</th>
+            <th>Content</th>
             <th>Send At</th>
             <th>Created</th>
         </tr>
     </thead>
     <tbody>
-        {foreach $notificationMsgs as $notification}
-            <tr n:class="'status-' . $notification->status->toColor()->value">
-                <td class="status-cell">{$notification->id}</td>
-                <td><a n:href="Event:show, id => $notification->eventId">{$notification->eventId}</a></td>
-                <td>{$notification->notificationType->value}</td>
-                <td>{$notification->mediaType->value}</td>
-                <td><span class="pill">{$notification->status->value}</span></td>
-                <td title="{$notification->text}">{$notification->text|truncate:50}</td>
-                <td>{$notification->scheduledAt|date:'d.m.y H:i'}</td>
-                <td>{$notification->createdAt|date:'d.m.y H:i'}</td>
+        {foreach $notificationMsgs as $notificationMsg}
+            <tr n:class="'status-' . $notificationMsg->status->toColor()->value">
+                <td class="status-cell">{$notificationMsg->id}</td>
+                <td><a n:href="Event:show, id => $notificationMsg->eventId">{$notificationMsg->eventId}</a></td>
+                <td>{$notificationMsg->notificationType->value}</td>
+                <td>{$notificationMsg->mediaType->value}</td>
+                <td><span class="pill">{$notificationMsg->status->value}</span></td>
+                <td>
+                    {if $notificationMsg->mediaType->isText()}
+                        <span title="{$notificationMsg->text}">{$notificationMsg->text|truncate:50}</span>
+                    {elseif $notificationMsg->mediaType->isImage()}
+                        <img src="{link Notification:serveImageByPath, path => $notificationMsg->filePath}"
+                                style="max-height: 40px; border: 1px solid #ccc; cursor: pointer;"
+                                onclick="showFullImage(this.src)" 
+                                alt="Click to view full size"
+                                title="Click to view full size">
+                    {/if}
+                </td>
+                <td>{$notificationMsg->scheduledAt|date:'d.m.y H:i'}</td>
+                <td>{$notificationMsg->createdAt|date:'d.m.y H:i'}</td>
             </tr>
         {/foreach}
     </tbody>

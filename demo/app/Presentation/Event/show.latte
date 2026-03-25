@@ -31,7 +31,7 @@
                         </div>
                         {if $msg->filePath}
                             <div style="margin-left:50px">
-                                <img src="{link Notification:serveImage, notificationId => $msg->id}" 
+                                <img src="{link Notification:serveImageByPath, path => $msg->filePath}" 
                                      style="max-width: 150px; max-height:150px; border: 1px solid #ccc; cursor: pointer;"
                                      onclick="showFullImage(this.src)" 
                                      alt="Click to view full size">
@@ -104,7 +104,7 @@
                     <div class="notification-block image-tile" id="unused-tile-{$iterator->counter}">
                         <div style="display: flex; justify-content: space-between;">
                             <div style="display: flex; align-items: center;">
-                                <img src="{link Notification:serveImageByPath, path => $path, doctorName => $event->doctorName}" 
+                                <img src="{link Notification:serveImageByPath, path => $path}" 
                                      alt="Preview" 
                                      style="max-width: 150px; max-height: 150px; border: 1px solid #ddd; cursor:pointer"
                                      onclick="showFullImage(this.src)">

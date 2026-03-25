@@ -8,7 +8,7 @@
             <th>Event ID</th>
             <th>Type</th>
             <th>Status</th>
-            <th>Text</th>
+            <th>Content</th>
             <th>Send At</th>
             <th>Action</th>
         </tr>
@@ -20,7 +20,17 @@
                 <td><a n:href="Event:show, id => $notificationMsg->eventId">{$notificationMsg->eventId}</a></td>
                 <td>{$notificationMsg->notificationType->value}</td>
                 <td><span class="pill">{$notificationMsg->status->value}</span></td>
-                <td title="{$notificationMsg->text}">{$notificationMsg->text|truncate:50}</td>
+                <td>
+                    {if $notificationMsg->mediaType->isText()}
+                        <span title="{$notificationMsg->text}">{$notificationMsg->text|truncate:50}</span>
+                    {elseif $notificationMsg->mediaType->isImage()}
+                        <img src="{link Notification:serveImageByPath, path => $notificationMsg->filePath}"
+                                style="max-height: 40px; border: 1px solid #ccc; cursor: pointer;"
+                                onclick="showFullImage(this.src)" 
+                                alt="Click to view full size"
+                                title="Click to view full size">
+                    {/if}
+                </td>
                 <td>{$notificationMsg->scheduledAt|date:'d.m.y H:i'}</td>
                 <td>
                     {if isset($activeAttempts[$notificationMsg->id])}

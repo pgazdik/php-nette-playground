@@ -50,24 +50,60 @@ class NotificationPresenter extends BaseEventPresenter
             throw new Nette\Application\BadRequestException('Image file not found.');
         }
 
+        // 1. Get the file's last modified time
+        $lastModified = filemtime($fullPath);
+        $etag = md5($notificationId . $lastModified);
+
+        // 2. Set Caching Headers
+        $response = $this->getHttpResponse();
+        $response->setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+        $response->setHeader('ETag', $etag);
+        $response->setExpiration('+1 day');
+
+        // 3. Check if the browser already has the image (Conditional GET)
+        $ifNoneMatch = $this->getHttpRequest()->getHeader('If-None-Match');
+        if ($ifNoneMatch === $etag) {
+            $response->setCode(Nette\Http\IResponse::S304_NOT_MODIFIED);
+            $this->terminate();
+        }
+
+        // 4. Send the file if not cached
         $this->sendResponse(new Nette\Application\Responses\FileResponse($fullPath));
     }
 
-    public function actionServeImageByPath(string $path, string $doctorName): void
+    public function actionServeImageByPath(string $path): void
     {
-        // Security check: path must start with doctorName
-        if (!str_starts_with($path, $doctorName . '/')) {
-            throw new Nette\Application\BadRequestException('Invalid image path for this doctor.');
-        }
-
         $fullPath = $this->mediaHandler->resolvePath($path);
 
         if (!file_exists($fullPath) || !is_file($fullPath)) {
             throw new Nette\Application\BadRequestException('Image file not found.');
         }
 
+        // 1. Generate unique ETag
+        $mtime = filemtime($fullPath);
+        $etag = md5($fullPath . $mtime);
+
+        $httpResponse = $this->getHttpResponse();
+        $httpRequest = $this->getHttpRequest();
+
+        // 2. Set Caching for 1 Week (604800 seconds)
+        $httpResponse->setHeader('Cache-Control', 'private, max-age=604800, stale-while-revalidate=86400');
+        $httpResponse->setHeader('ETag', $etag);
+        $httpResponse->setExpiration('+7 days');
+
+        // 3. Conditional GET check (The "Is it still the same?" shortcut)
+        if ($httpRequest->getHeader('If-None-Match') === $etag) {
+            $httpResponse->setCode(Nette\Http\IResponse::S304_NOT_MODIFIED);
+            $this->terminate();
+        }
+
+        // 4. Send the file response
         $this->sendResponse(new Nette\Application\Responses\FileResponse($fullPath));
     }
+
+    //
+    // All
+    //
 
     public function beforeRender(): void
     {
