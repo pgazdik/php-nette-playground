@@ -15,7 +15,7 @@
     </thead>
     <tbody>
         {foreach $notificationMsgs as $notificationMsg}
-            <tr n:class="'status-' . $notificationMsg->status->toColor()->value">
+            <tr n:class="'status-' . $notificationMsg->status->toColor()->value" event-id="{$notificationMsg->eventId}">
                 <td class="status-cell">{$notificationMsg->id}</td>
                 <td><a n:href="Event:show, id => $notificationMsg->eventId">{$notificationMsg->eventId}</a></td>
                 <td>{$notificationMsg->notificationType->value}</td>

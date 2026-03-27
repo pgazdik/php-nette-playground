@@ -6,6 +6,9 @@
     <title>{ifset title}{include title|stripHtml} | {/ifset}Notifications</title>
     <link rel="stylesheet" href="{$basePath}/cssjs/events.css">
     <script src="{$basePath}/cssjs/modal-image.js"></script>
+    {if $presenter->name === 'Notification'}
+    <script src="{$basePath}/cssjs/notification-table.js"></script>
+    {/if}
     <link rel="stylesheet" href="{$basePath}/cssjs/modal-image.css">
     <style>
         body, html {
