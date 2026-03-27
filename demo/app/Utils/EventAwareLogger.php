@@ -14,6 +14,10 @@ class EventAwareLogger implements ILogger
     public function __construct(
         private string $logDirectory
     ) {
+        $eventDir = $this->logDirectory . "/events";
+        if (!is_dir($eventDir)) {
+            mkdir($eventDir, 0755, true);
+        }
     }
 
     public function log($value, string $priority = self::INFO): ?string
